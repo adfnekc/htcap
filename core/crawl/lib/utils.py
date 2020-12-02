@@ -32,7 +32,7 @@ def request_in_scope(request):
 	# check for scopes
 	if scope == CRAWLSCOPE_DOMAIN:
 		for pattern in Shared.allowed_domains:
-			if re.match(pattern, purl.hostname):
+			if purl.hostname!= None and re.match(pattern, purl.hostname):
 				in_scope = True
 				break
 
@@ -198,6 +198,7 @@ class ProbeExecutor:
 				os.unlink(self.out_file)
 
 			if err or not jsn:
+				print(err)
 				self.errors.append(ERROR_PROBEKILLED)
 				if not jsn:
 					break

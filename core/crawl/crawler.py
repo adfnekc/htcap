@@ -254,7 +254,7 @@ class Crawler:
 
 				if self.display_progress and not self.verbose:
 					tot = (crawled + pending)
-					pb.out(tot, crawled)
+					# pb.out(tot, crawled)
 
 				if pending == 0:
 					# is the check of running threads really needed?
