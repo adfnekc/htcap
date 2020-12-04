@@ -148,6 +148,10 @@ async function getFormAsRequest(frm, page){
 					if(checked)
 						formObj.data.push(par);
 					break;
+				case "file":
+					formObj.type = "file";
+					formObj.data.push(par+"@file");
+					break;
 				default:
 					formObj.data.push(par);
 			}
