@@ -36,7 +36,7 @@ var targetUrl = argv.args[0];
 
 if (!targetUrl) {
 	utils.usage();
-	process.exit(-1);
+	process.exit(0);
 }
 
 targetUrl = targetUrl.trim();
