@@ -12,7 +12,7 @@ version.
 
 "use strict";
 
-const htcrawl = require("htcrawl");
+const htcrawl = require("./htcrawl");
 const utils = require('./utils');
 const process = require('process');
 const os = require('os');
@@ -135,12 +135,14 @@ if (os.platform() == "win32") {
 
 
 	crawler.on("newdom", async function (e, crawler) {
+		debugger;
 		await utils.printLinks(e.params.rootNode, crawler.page())
 		await utils.printForms(e.params.rootNode, crawler.page())
 		//console.log(e.params)
 	})
 
 	crawler.on("xhr", async function (e, crawler) {
+		debugger;
 		utils.printRequest(e.params.request)
 
 		//return false
@@ -152,6 +154,7 @@ if (os.platform() == "win32") {
 
 
 	crawler.on("fetch", async function (e, crawler) {
+		debugger;
 		utils.printRequest(e.params.request)
 		//await sleep(6000);
 		//return false
@@ -162,6 +165,7 @@ if (os.platform() == "win32") {
 	});
 
 	crawler.on("jsonp", function (e, crawler) {
+		debugger;
 		utils.printRequest(e.params.request)
 	});
 
@@ -182,10 +186,12 @@ if (os.platform() == "win32") {
 	});
 
 	crawler.on("formSubmit", function (e, crawler) {
+		debugger;
 		utils.printRequest(e.params.request)
 	});
 
 	crawler.on("navigation", function (e, crawler) {
+		debugger;
 		e.params.request.type = "link";
 		utils.printRequest(e.params.request)
 	});
@@ -203,10 +209,10 @@ if (os.platform() == "win32") {
 		//crawler.browser().close();
 	});
 
-	execTO = setTimeout(function () {
-		crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
-		end();
-	}, options.maxExecTime);
+	// execTO = setTimeout(function () {
+	// 	crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
+	// 	end();
+	// }, options.maxExecTime);
 
 	if(options.localStorage){
 		page.evaluateOnNewDocument((storage) => {

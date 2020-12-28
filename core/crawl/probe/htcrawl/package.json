@@ -1,0 +1,71 @@
+{
+  "_from": "htcrawl",
+  "_id": "htcrawl@1.0.1",
+  "_inBundle": false,
+  "_integrity": "sha512-HtEliqRKSlVllP11SzoVTtg+aXyd5wlGTxg9xfixBvdsENts7xllVhf1qIF94iAuMU07vVMa2rgzAzqcuwS2NQ==",
+  "_location": "/htcrawl",
+  "_phantomChildren": {
+    "async-limiter": "1.0.1",
+    "concat-stream": "1.6.2",
+    "debug": "4.3.1",
+    "es6-promisify": "5.0.0",
+    "glob": "7.1.6",
+    "mime": "2.4.6",
+    "mkdirp": "0.5.5",
+    "progress": "2.0.3",
+    "proxy-from-env": "1.1.0",
+    "yauzl": "2.10.0"
+  },
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "htcrawl",
+    "name": "htcrawl",
+    "escapedName": "htcrawl",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/htcrawl/-/htcrawl-1.0.1.tgz",
+  "_shasum": "2e5af87f47ddf82a9ac0c1242ab523d26e5d75dc",
+  "_spec": "htcrawl",
+  "_where": "/mnt/c/Users/Administrator/Projects/Python/htcap/core/crawl/probe",
+  "author": {
+    "name": "Filippo Cavallarin"
+  },
+  "bugs": {
+    "url": "https://github.com/fcavallarin/htcrawl/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "puppeteer": "^1.19.0"
+  },
+  "deprecated": false,
+  "description": "crawler for single page applications",
+  "devDependencies": {
+    "puppeteer": "^1.19.0"
+  },
+  "homepage": "https://htcrawl.org",
+  "keywords": [
+    "crawler",
+    "crawling",
+    "puppeteer",
+    "SPA",
+    "headless-chrome"
+  ],
+  "license": "GPL-3.0",
+  "main": "main.js",
+  "name": "htcrawl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fcavallarin/htcrawl.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.1"
+}

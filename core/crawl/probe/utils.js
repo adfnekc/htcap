@@ -39,6 +39,14 @@ function printRequest(req){
 		req.data = null;
 	req.url = filterUrl(req.url);
 
+	if (req.url == "javascript:void(0);"){
+		return;
+	}
+
+	if (req.url=="http://localhost:8080/action/login"){
+		debugger;
+	}
+
 	let jr = JSON.stringify(req);
 	if(printedRequests.indexOf(jr) != -1)
 		return;
@@ -115,6 +123,9 @@ async function getFormAsRequest(frm, page){
 	var inputs = null;
 
 	formObj.method = await (await frm.getProperty("method")).jsonValue();
+	if (formObj.method.toUpperCase()=="POST" && formObj.type=="form"){
+		debugger;
+	}
 
 	if(!formObj.method){
 		formObj.method = "GET";
