@@ -48,8 +48,32 @@ if (os.platform() == "win32") {
 	options.executablePath = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
 }
 
-//options.openChromeDevtoos = true;
+options.openChromeDevtoos = true;
+options.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36";
+options.args = [
+	'--no-sandbox',
+	'--headless',
+	'--disable-gpu',
+	'--window-size=1920x1080'
+];
 (async () => {
+	let crawler = await htcrawl.launch("https://cn.bing.com/", options);
+	try {
+		await crawler.load();
+
+		let b = crawler.browser();
+		let page = await b.newPage();
+		await page.goto("https://baidu.com/");
+	} catch (err) {
+		console.log(err);
+	}
+})();
+
+
+
+
+//options.openChromeDevtoos = true;
+async function analyze() {
 	const crawler = await htcrawl.launch(targetUrl, options);
 	const page = crawler.page();
 	var execTO = null;
@@ -214,9 +238,9 @@ if (os.platform() == "win32") {
 	// 	end();
 	// }, options.maxExecTime);
 
-	if(options.localStorage){
+	if (options.localStorage) {
 		page.evaluateOnNewDocument((storage) => {
-			for(let s in storage){
+			for (let s in storage) {
 				let fn = storage[s].type == "S" ? window.sessionStorage : window.localStorage;
 				fn.setItem(s, storage[s].value);
 			}
@@ -316,6 +340,4 @@ if (os.platform() == "win32") {
 	} catch (err) {
 		await end();
 	}
-
-})();
-
+}
