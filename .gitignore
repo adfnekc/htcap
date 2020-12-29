@@ -1,8 +1,12 @@
-*.py[cod]
-tmp.py
-*.db
-tmp
 node_modules/
+
 .*
-!/.gitignore
+*.db
+*.py[cod]
+
+tmp
+tmp.py
+debug.log
 package-lock.json
+
+!/.gitignore

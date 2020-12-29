@@ -114,7 +114,7 @@ if (os.platform() == "win32") {
 		return await page.$(selector);
 	}
 
-	fs.writeFileSync(pidfile, crawler.browser().process().pid);
+	fs.writeFileSync(pidfile, crawler.browser().process().pid.toString());
 	utils.print_out("[");
 
 	crawler.on("redirect", async function (e, crawler) {
