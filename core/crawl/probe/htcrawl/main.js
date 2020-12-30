@@ -19,7 +19,7 @@ const probeTextComparator = require("./shingleprint");
 const utils = require('./utils');
 const process = require('process');
 
-exports.launch = async function (url, options) {
+exports.NewCrawler = async function (options) {
 	options = options || {};
 	const chromeArgs = [
 		'--no-sandbox',
@@ -47,30 +47,23 @@ exports.launch = async function (url, options) {
 		chromeArgs.push('--auto-open-devtools-for-tabs');
 	}
 
-	var browser = await puppeteer.launch({ headless: options.headlessChrome, ignoreHTTPSErrors: true, executablePath: options.executablePath, args: chromeArgs });
-	var c = new Crawler(url, options, browser);
-	await c.bootstrapPage(browser);
+	let browser = await puppeteer.launch({ headless: options.headlessChrome, ignoreHTTPSErrors: true, executablePath: options.executablePath, args: chromeArgs });
+	let page = await browser.newPage()
+
+	page.on('console', consoleObj => console.log(consoleObj.text()));
+
+	let c = new Crawler(options, browser);
+
+	c._page = page;
 	return c;
-};
+}
 
 
-
-
-
-
-function Crawler(targetUrl, options, browser) {
-
-	targetUrl = targetUrl.trim();
-	if (targetUrl.length < 4 || targetUrl.substring(0, 4).toLowerCase() != "http") {
-		targetUrl = "http://" + targetUrl;
-	}
-	this.targetUrl = targetUrl;
-
+function Crawler(options, browser) {
 	this.publicProbeMethods = [''];
 	this._cookies = [];
 	this._redirect = null;
 	this._errors = [];
-	this._loaded = false;
 	this._allowNavigation = false;
 	this._firstRun = true;
 	this.error_codes = ["contentType", "navigation", "response"];
@@ -151,19 +144,21 @@ Crawler.prototype.errors = function () {
 }
 // returns after all ajax&c have been completed
 Crawler.prototype.load = async function () {
-	const resp = await this._goto(this.targetUrl);
-	return await this._afterNavigation(resp);
+	if (this.targetUrl) {
+		const resp = await this._goto(this.targetUrl);
+		return await this._afterNavigation(resp);
+	}
 };
 
 Crawler.prototype._goto = async function (url) {
 	var _this = this;
-	if (this.options.verbose) console.log("LOADDING-> ",url)
+	if (this.options.verbose) console.log("LOADDING-> ", url)
 
 	try {
 		await this._page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36');
 		return await this._page.goto(url, { waitUntil: 'load' });
 	} catch (e) {
-		_this._errors.push(["navigation", `${e.message}`]);
+		_this._errors.push(["navigation", `goto err,${e.message}`]);
 		throw e;
 	};
 
@@ -233,13 +228,15 @@ Crawler.prototype.start = async function () {
 	try {
 		await _this._page.evaluate(async function () {
 			//await window.__PROBE__.dispatchProbeEvent("start");
-			console.log("startAnalysis");
+			console.log("startAnalysis",window);
+			debugger;
 			await window.__PROBE__.startAnalysis();
 		});
 
 		return _this;
 	} catch (e) {
-		_this._errors.push(["navigation", "navigation aborted2"]);
+		console.log(e);
+		_this._errors.push(["navigation", "" + e]);
 		//_this.dispatchProbeEvent("end", {});
 		throw e;
 	};
@@ -368,10 +365,10 @@ Crawler.prototype.bootstrapPage = async function (browser) {
 		dialog.accept();
 	});
 
-	// browser.on("targetcreated", async (target) => {
-	// 	const p = await target.page();
-	// 	if (p) p.close();
-	// });
+	browser.on("targetcreated", async (target) => {
+		const p = await target.page();
+		// if (p) p.close();
+	});
 
 
 	page.exposeFunction("__htcrawl_probe_event__", (name, params) => { return this.dispatchProbeEvent(name, params) }); // <- automatically awaited.."If the puppeteerFunction returns a Promise, it will be awaited."
@@ -421,17 +418,25 @@ Crawler.prototype.bootstrapPage = async function (browser) {
 };
 
 
+Crawler.prototype.inject = async function(page){
+	await page.exposeFunction("__htcrawl_probe_event__", (name, params) => { return this.dispatchProbeEvent(name, params) }); // <- automatically awaited.."If the puppeteerFunction returns a Promise, it will be awaited."
+	
+	let inputValues = utils.generateRandomValues(this.options.randomSeed);
+	await page.evaluateOnNewDocument(probe.initProbe, this.options, inputValues);
+	await page.evaluateOnNewDocument(probeTextComparator.initTextComparator);
+	await page.evaluateOnNewDocument(utils.hookNativeFunctions, this.options);
+}
+
+
 Crawler.prototype.navigate = async function (url) {
-	if (!this._loaded) {
-		throw ("Crawler must be loaded before navigate");
-	}
+	await this.inject(this.page());
 	var resp = null;
 	this._allowNavigation = true;
 	try {
 		resp = await this._goto(url);
 	} catch (e) {
 		this._errors.push(["navigation", "navigation aborted3"]);
-		throw ("Navigation error");
+		throw ("Navigation error" + e);
 	} finally {
 		this._allowNavigation = false;
 	}
@@ -441,9 +446,6 @@ Crawler.prototype.navigate = async function (url) {
 
 
 Crawler.prototype.reload = async function () {
-	if (!this._loaded) {
-		throw ("Crawler must be loaded before navigate");
-	}
 	var resp = null;
 	this._allowNavigation = true;
 	try {
@@ -463,9 +465,6 @@ Crawler.prototype.reload = async function () {
 Crawler.prototype.clickToNavigate = async function (element, timeout) {
 	const _this = this;
 	var pa;
-	if (!this._loaded) {
-		throw ("Crawler must be loaded before navigate");
-	}
 	if (typeof element == 'string') {
 		try {
 			element = await this._page.$(element);

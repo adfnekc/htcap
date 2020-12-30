@@ -33,7 +33,6 @@ var options = argv.opts
 var targetUrl = argv.args[0];
 
 
-
 if (!targetUrl) {
 	utils.usage();
 	process.exit(0);
@@ -57,25 +56,20 @@ options.args = [
 	'--window-size=1920x1080'
 ];
 (async () => {
-	let crawler = await htcrawl.launch("https://cn.bing.com/", options);
+	let crawler = await htcrawl.NewCrawler(options);
+	let page = crawler.page();
 	try {
-		await crawler.load();
-
-		let b = crawler.browser();
-		let page = await b.newPage();
-		await page.goto("https://baidu.com/");
+		await analyze(crawler, page, "https://baidu.com/");
+		// await analyze(crawler, page, "https://baidu.com/");
+		// await analyze(crawler, page, "https://sina.cn/");
 	} catch (err) {
 		console.log(err);
 	}
 })();
 
 
-
-
-//options.openChromeDevtoos = true;
-async function analyze() {
-	const crawler = await htcrawl.launch(targetUrl, options);
-	const page = crawler.page();
+async function analyze(crawler, page, targetUrl) {
+	crawler.navigate(targetUrl)
 	var execTO = null;
 	var domLoaded = false;
 	var endRequested = false;
@@ -84,10 +78,11 @@ async function analyze() {
 
 	async function exit() {
 		//await sleep(1000000)
-		clearTimeout(execTO);
-		await crawler.browser().close();
-		fs.unlink(pidfile, (err) => { });
-		process.exit();
+		//clearTimeout(execTO);
+		//await crawler.browser().close();
+		// fs.unlink(pidfile, (err) => { });
+		// process.exit();
+		return;
 	}
 
 	async function getPageText(page) {
@@ -166,7 +161,6 @@ async function analyze() {
 	})
 
 	crawler.on("xhr", async function (e, crawler) {
-		debugger;
 		utils.printRequest(e.params.request)
 
 		//return false
@@ -210,12 +204,10 @@ async function analyze() {
 	});
 
 	crawler.on("formSubmit", function (e, crawler) {
-		debugger;
 		utils.printRequest(e.params.request)
 	});
 
 	crawler.on("navigation", function (e, crawler) {
-		debugger;
 		e.params.request.type = "link";
 		utils.printRequest(e.params.request)
 	});
@@ -319,7 +311,7 @@ async function analyze() {
 
 	// scroll page
 	await (async () => {
-		await crawler.page().evaluate(async function () {
+		await page.evaluate(async function () {
 			let pageHeight = () => { return document.body.scrollHeight; };
 			let scrollTop = () => { return window.pageYOffset || document.documentElement.scrollTop };
 			let windowHeight = () => { return window.innerHeight };
@@ -340,4 +332,5 @@ async function analyze() {
 	} catch (err) {
 		await end();
 	}
+	console.log("ending...");
 }
