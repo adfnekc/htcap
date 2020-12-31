@@ -12,12 +12,13 @@ version.
 
 "use strict";
 
-const htcrawl = require("./htcrawl");
-const utils = require('./utils');
-const process = require('process');
+
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const utils = require('./utils');
+const process = require('process');
+const htcrawl = require("./htcrawl");
 
 
 var sleep = function (n) {
@@ -55,12 +56,52 @@ options.args = [
 	'--disable-gpu',
 	'--window-size=1920x1080'
 ];
+
+
 (async () => {
 	let crawler = await htcrawl.NewCrawler(options);
 	let page = crawler.page();
+
+	try {
+		if (options.referer) {
+			await page.setExtraHTTPHeaders({
+				'Referer': options.referer
+			});
+		}
+		if (options.extraHeaders) {
+			await page.setExtraHTTPHeaders(options.extraHeaders);
+		}
+		for (let i = 0; i < options.setCookies.length; i++) {
+			if (!options.setCookies[i].expires)
+				options.setCookies[i].expires = parseInt((new Date()).getTime() / 1000) + (60 * 60 * 24 * 365);
+			//console.log(options.setCookies[i]);
+			await page.setCookie(options.setCookies[i]);
+		}
+
+		if (options.httpAuth) {
+			await page.authenticate({ username: options.httpAuth[0], password: options.httpAuth[1] });
+		}
+
+		if (options.userAgent) {
+			await page.setUserAgent(options.userAgent);
+		}
+
+		await this._page.setDefaultNavigationTimeout(this.options.navigationTimeout);
+	} catch (e) {
+		console.log("modify page err,", e);
+	}
+
+	await page.setViewport({
+		width: 1366,
+		height: 768,
+	});
+
+	await crawler.inject(page);
+
+
 	try {
 		await analyze(crawler, page, "https://baidu.com/");
-		// await analyze(crawler, page, "https://baidu.com/");
+		//await analyze(crawler, page, "https://bing.com/");
 		// await analyze(crawler, page, "https://sina.cn/");
 	} catch (err) {
 		console.log(err);
@@ -69,7 +110,7 @@ options.args = [
 
 
 async function analyze(crawler, page, targetUrl) {
-	crawler.navigate(targetUrl)
+	await crawler.navigate(targetUrl);
 	var execTO = null;
 	var domLoaded = false;
 	var endRequested = false;
@@ -321,7 +362,7 @@ async function analyze(crawler, page, targetUrl) {
 				await window.__PROBE__.sleep(60);
 			}
 		})
-	})()
+	})();
 
 	try {
 		if (!options.doNotCrawl) {

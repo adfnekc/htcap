@@ -50,7 +50,7 @@ exports.NewCrawler = async function (options) {
 	let browser = await puppeteer.launch({ headless: options.headlessChrome, ignoreHTTPSErrors: true, executablePath: options.executablePath, args: chromeArgs });
 	let page = await browser.newPage()
 
-	page.on('console', consoleObj => console.log(consoleObj.text()));
+	//page.on('console', consoleObj => console.log(consoleObj.text()));
 
 	let c = new Crawler(options, browser);
 
@@ -59,106 +59,103 @@ exports.NewCrawler = async function (options) {
 }
 
 
-function Crawler(options, browser) {
-	this.publicProbeMethods = [''];
-	this._cookies = [];
-	this._redirect = null;
-	this._errors = [];
-	this._allowNavigation = false;
-	this._firstRun = true;
-	this.error_codes = ["contentType", "navigation", "response"];
+class Crawler {
+	constructor(options, browser) {
+		this.options = options;
+		this._browser = browser;
+		this._page = null;
 
-	this.probeEvents = {
-		start: function () { },
-		xhr: function () { },
-		xhrcompleted: function () { },
-		fetch: function () { },
-		fetchcompleted: function () { },
-		jsonp: function () { },
-		jsonpcompleted: function () { },
-		websocket: function () { },
-		websocketmessage: function () { },
-		websocketsend: function () { },
-		formsubmit: function () { },
-		fillinput: function () { },
-		//requestscompleted: function(){},
-		//dommodified: function(){},
-		newdom: function () { },
-		navigation: function () { },
-		domcontentloaded: function () { },
-		//blockedrequest: function(){},
-		redirect: function () { },
-		earlydetach: function () { },
-		triggerevent: function () { },
-		eventtriggered: function () { },
-		pageinitialized: function () { }
-		//end: function(){}
-	}
-
-
-	this.options = options;
-
-	this._browser = browser;
-	this._page = null;
-}
-
-
-Crawler.prototype.browser = function () {
-	return this._browser;
-}
-
-Crawler.prototype.page = function () {
-	return this._page;
-}
-
-Crawler.prototype.cookies = async function () {
-	var pcookies = [];
-	if (this._page) {
-		let cookies = await this._page.cookies();
-		for (let c of cookies) {
-			pcookies.push({
-				name: c.name,
-				value: c.value,
-				domain: c.domain,
-				path: c.path,
-				expires: c.expires,
-				httponly: c.httpOnly,
-				secure: c.secure
-			});
-			this._cookies = this._cookies.filter((el) => {
-				if (el.name != c.name) {
-					return el;
-				}
-			})
+		this.publicProbeMethods = [''];
+		this._cookies = [];
+		this._redirect = null;
+		this._errors = [];
+		this._allowNavigation = false;
+		this._firstRun = true;
+		this.error_codes = ["contentType", "navigation", "response"];
+		this.probeEvents = {
+			start: function () { },
+			xhr: function () { },
+			xhrcompleted: function () { },
+			fetch: function () { },
+			fetchcompleted: function () { },
+			jsonp: function () { },
+			jsonpcompleted: function () { },
+			websocket: function () { },
+			websocketmessage: function () { },
+			websocketsend: function () { },
+			formsubmit: function () { },
+			fillinput: function () { },
+			//requestscompleted: function(){},
+			//dommodified: function(){},
+			newdom: function () { },
+			navigation: function () { },
+			domcontentloaded: function () { },
+			//blockedrequest: function(){},
+			redirect: function () { },
+			earlydetach: function () { },
+			triggerevent: function () { },
+			eventtriggered: function () { },
+			pageinitialized: function () { }
+			//end: function(){}
 		}
-	}
-	return this._cookies.concat(pcookies);
-}
+	};
 
-Crawler.prototype.redirect = function () {
-	return this._redirect;
-}
+	page = this._page;
+	errors = this._errors;
+	browser = this._browser;
+	redirect = this._redirect;
 
-Crawler.prototype.errors = function () {
-	return this._errors;
-}
-// returns after all ajax&c have been completed
-Crawler.prototype.load = async function () {
-	if (this.targetUrl) {
-		const resp = await this._goto(this.targetUrl);
-		return await this._afterNavigation(resp);
+	cookies = async () => {
+		var pcookies = [];
+		if (this._page) {
+			let cookies = await this._page.cookies();
+			for (let c of cookies) {
+				pcookies.push({
+					name: c.name,
+					value: c.value,
+					domain: c.domain,
+					path: c.path,
+					expires: c.expires,
+					httponly: c.httpOnly,
+					secure: c.secure
+				});
+				this._cookies = this._cookies.filter((el) => {
+					if (el.name != c.name) {
+						return el;
+					}
+				})
+			}
+		}
+		return this._cookies.concat(pcookies);
+	};
+
+	load = async () => {
+
 	}
+
+
 };
 
-Crawler.prototype._goto = async function (url) {
+	// returns after all ajax&c have been completed
+	Crawler.prototype.load = async function () {
+	if (this.targetUrl) {
+	const resp = await this._goto(this.targetUrl);
+	return await this._afterNavigation(resp);
+}
+};
+
+	Crawler.prototype._goto = async function (url) {
 	var _this = this;
 	if (this.options.verbose) console.log("LOADDING-> ", url)
 
 	try {
-		await this._page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36');
-		return await this._page.goto(url, { waitUntil: 'load' });
-	} catch (e) {
-		_this._errors.push(["navigation", `goto err,${e.message}`]);
+	await this._page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36');
+	return await this._page.goto(url, {
+	waitUntil: 'load'
+});
+} catch (e) {
+	_this._errors.push(["navigation", `goto err,${e.message
+} `]);
 		throw e;
 	};
 
@@ -169,7 +166,9 @@ Crawler.prototype._afterNavigation = async function (resp) {
 		let ctype = 'content-type' in hdrs ? hdrs['content-type'] : "";
 
 		if (ctype.toLowerCase().split(";")[0] != "text/html") {
-			_this._errors.push(["content_type", `content type is ${ctype}`]);
+			_this._errors.push(["content_type", `content type is $ {
+	ctype
+}`]);
 			return false;
 		}
 		return true;
@@ -228,8 +227,8 @@ Crawler.prototype.start = async function () {
 	try {
 		await _this._page.evaluate(async function () {
 			//await window.__PROBE__.dispatchProbeEvent("start");
-			console.log("startAnalysis",window);
-			debugger;
+
+			console.log("startAnalysis");
 			await window.__PROBE__.startAnalysis();
 		});
 
@@ -418,9 +417,15 @@ Crawler.prototype.bootstrapPage = async function (browser) {
 };
 
 
-Crawler.prototype.inject = async function(page){
-	await page.exposeFunction("__htcrawl_probe_event__", (name, params) => { return this.dispatchProbeEvent(name, params) }); // <- automatically awaited.."If the puppeteerFunction returns a Promise, it will be awaited."
-	
+Crawler.prototype.inject = async function (page) {
+	let injected = await page.evaluate(async () => {
+		return "__htcrawl_probe_event__" in window;
+	})
+
+	if (!injected) {
+		await page.exposeFunction("__htcrawl_probe_event__", (name, params) => { return this.dispatchProbeEvent(name, params) }); // <- automatically awaited.."If the puppeteerFunction returns a Promise, it will be awaited."
+	}
+
 	let inputValues = utils.generateRandomValues(this.options.randomSeed);
 	await page.evaluateOnNewDocument(probe.initProbe, this.options, inputValues);
 	await page.evaluateOnNewDocument(probeTextComparator.initTextComparator);

@@ -719,7 +719,6 @@ function initProbe(options, inputValues){
 	Probe.prototype.startAnalysis = async function(){
 		console.log("page initialized ");
 		var _this = this;
-		debugger;
 		this.started_at = (new Date()).getTime();
 		await this.crawlDOM(document);
 		console.log("DOM analyzed ");
