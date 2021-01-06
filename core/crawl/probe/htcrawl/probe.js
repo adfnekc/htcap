@@ -410,7 +410,6 @@ function initProbe(options, inputValues){
 
 
 	Probe.prototype.trigger = function(el, evname){
-		return;
 		/* 	workaround for a phantomjs bug on linux (so maybe not a phantom bug but some linux libs??).
 			if you trigger click on input type=color evertything freezes... maybe due to some
 			color picker that pops up ...
@@ -442,6 +441,7 @@ function initProbe(options, inputValues){
 			*/
 			e.preventDefault();
 			e.stopPropagation();
+			e.stopImmediatePropagation();
 		}
 
 		if ('createEvent' in document) {
@@ -461,19 +461,11 @@ function initProbe(options, inputValues){
 				evt = document.createEvent('HTMLEvents');
 				evt.initEvent(evname, true, false);
 			}
-
-			
-			if (evt.type=="click"){
-				console.log("event:",evt);
-				debugger;
-			}
-
 			el.dispatchEvent(evt);
 		} else {
 			evname = 'on' + evname;
 			if( evname in el && typeof el[evname] == "function"){
 				console.log("******evname:",evname);
-				debugger;
 				el[evname]();
 			}
 		}
@@ -485,9 +477,7 @@ function initProbe(options, inputValues){
 
 
 	Probe.prototype.isEventTriggerable = function(event){
-
 		return ['load','unload','beforeunload'].indexOf(event) == -1;
-
 	};
 
 	Probe.prototype.getEventsForElement = function(element){
@@ -694,7 +684,6 @@ function initProbe(options, inputValues){
 
 
 	Probe.prototype.addEventToMap = function(element, event){
-
 		for(var a = 0; a < this.eventsMap.length; a++){
 			if(this.eventsMap[a].element == element){
 				this.eventsMap[a].events.push(event);
@@ -765,7 +754,7 @@ function initProbe(options, inputValues){
 		// JSONP must have a querystring...
 		if(!a.search) return;
 
-		var req  = new this.Request("jsonp", "GET", src, null, this.getTrigger());
+		var req = new this.Request("jsonp", "GET", src, null, this.getTrigger());
 		node.__request = req;
 
 		// __skipped requests.. todo

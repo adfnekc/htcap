@@ -60,7 +60,7 @@ options.args = [
 
 (async () => {
 	let crawler = await htcrawl.NewCrawler(options);
-	let page = crawler.page();
+	let page = await crawler.page();
 
 	try {
 		if (options.referer) {
@@ -86,7 +86,7 @@ options.args = [
 			await page.setUserAgent(options.userAgent);
 		}
 
-		await this._page.setDefaultNavigationTimeout(this.options.navigationTimeout);
+		await page.setDefaultNavigationTimeout(crawler.options.navigationTimeout);
 	} catch (e) {
 		console.log("modify page err,", e);
 	}
@@ -96,7 +96,7 @@ options.args = [
 		height: 768,
 	});
 
-	await crawler.inject(page);
+	await crawler.inject();
 
 
 	try {

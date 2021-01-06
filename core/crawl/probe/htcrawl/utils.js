@@ -25,13 +25,13 @@ exports.Request = Request;
 
 	if(options.mapEvents){
 
-		Node.prototype.originaladdEventListener = Node.prototype.addEventListener;
-		Node.prototype.addEventListener = function(event, func, useCapture){
-			if(event != "DOMContentLoaded"){ // is this ok???
-				window.__PROBE__.addEventToMap(this, event);
-			}
-			this.originaladdEventListener(event, func, useCapture);
-		};
+		// Node.prototype.originaladdEventListener = Node.prototype.addEventListener;
+		// Node.prototype.addEventListener = function(event, func, useCapture){
+		// 	if(event != "DOMContentLoaded"){ // is this ok???
+		// 		window.__PROBE__.addEventToMap(this, event);
+		// 	}
+		// 	Node.prototype.originaladdEventListener(event, func, useCapture);
+		// };
 
 		window.addEventListener = (function(originalAddEventListener){
 			return function(event, func, useCapture){
@@ -82,7 +82,7 @@ exports.Request = Request;
 		Node.prototype.appendChild = function(node){
 			//window.__PROBE__.printJSONP(node);
 
-			window.__PROBE__.jsonpHook(node);
+			//window.__PROBE__.jsonpHook(node);
 			return this.originalappendChild(node);
 		}
 

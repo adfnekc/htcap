@@ -48,29 +48,27 @@ exports.NewCrawler = async function (options) {
 	}
 
 	let browser = await puppeteer.launch({ headless: options.headlessChrome, ignoreHTTPSErrors: true, executablePath: options.executablePath, args: chromeArgs });
-	let page = await browser.newPage()
+	let page = await browser.newPage();
 
-	//page.on('console', consoleObj => console.log(consoleObj.text()));
+	page.on('console', consoleObj => console.log(consoleObj.text()));
 
-	let c = new Crawler(options, browser);
+	let c = new Crawler(options, browser, page);
 
-	c._page = page;
 	return c;
 }
 
 
 class Crawler {
-	constructor(options, browser) {
-		this.options = options;
-		this._browser = browser;
-		this._page = null;
-
-		this.publicProbeMethods = [''];
-		this._cookies = [];
+	constructor(options, browser, page) {
 		this._redirect = null;
-		this._errors = [];
 		this._allowNavigation = false;
 		this._firstRun = true;
+		this.options = options;
+		this._browser = browser;
+		this._page = page;
+		this.publicProbeMethods = [];
+		this._cookies = [];
+		this._errors = [];
 		this.error_codes = ["contentType", "navigation", "response"];
 		this.probeEvents = {
 			start: function () { },
@@ -100,34 +98,10 @@ class Crawler {
 		};
 	};
 
-	page = this._page;
-	errors = this._errors;
-	browser = this._browser;
-	redirect = this._redirect;
-
-	cookies = async () => {
-		var pcookies = [];
-		if (this._page) {
-			let cookies = await this._page.cookies();
-			for (let c of cookies) {
-				pcookies.push({
-					name: c.name,
-					value: c.value,
-					domain: c.domain,
-					path: c.path,
-					expires: c.expires,
-					httponly: c.httpOnly,
-					secure: c.secure
-				});
-				this._cookies = this._cookies.filter((el) => {
-					if (el.name != c.name) {
-						return el;
-					}
-				})
-			}
-		}
-		return this._cookies.concat(pcookies);
-	};
+	page = () => { return this._page; };
+	browser = () => { return this._browser; };
+	errors = () => { return this._errors; }
+	redirect = () => { return this._redirect; }
 
 	_goto = async (url) => {
 		if (this.options.verbose) console.log("LOADDING-> ", url)
@@ -141,7 +115,7 @@ class Crawler {
 			this._errors.push(["navigation", `goto err,${e.message}`]);
 			throw e;
 		};
-	}
+	};
 
 	_afterNavigation = async (resp) => {
 		var _this = this;
@@ -185,7 +159,31 @@ class Crawler {
 		} catch (e) {
 			throw e;
 		};
-	}
+	};
+
+	cookies = async () => {
+		var pcookies = [];
+		if (this._page) {
+			let cookies = await this._page.cookies();
+			for (let c of cookies) {
+				pcookies.push({
+					name: c.name,
+					value: c.value,
+					domain: c.domain,
+					path: c.path,
+					expires: c.expires,
+					httponly: c.httpOnly,
+					secure: c.secure
+				});
+				this._cookies = this._cookies.filter((el) => {
+					if (el.name != c.name) {
+						return el;
+					}
+				})
+			}
+		}
+		return this._cookies.concat(pcookies);
+	};
 
 	waitForRequestsCompletion = async () => {
 		await this._page.evaluate(async function () {
@@ -193,7 +191,7 @@ class Crawler {
 			await window.__PROBE__.waitJsonp();
 			await window.__PROBE__.waitFetch();
 		});
-	}
+	};
 
 	start = async () => {
 		var _this = this;
@@ -201,11 +199,9 @@ class Crawler {
 		try {
 			await _this._page.evaluate(async function () {
 				//await window.__PROBE__.dispatchProbeEvent("start");
-
 				console.log("startAnalysis");
 				await window.__PROBE__.startAnalysis();
 			});
-
 			return _this;
 		} catch (e) {
 			console.log(e);
@@ -213,14 +209,13 @@ class Crawler {
 			//_this.dispatchProbeEvent("end", {});
 			throw e;
 		};
-
-	}
+	};
 
 	stop = async () => {
 		await this._page.evaluate(() => {
 			window.__PROBE__._stop = true;
 		})
-	}
+	};
 
 	on = (eventName, handler) => {
 		eventName = eventName.toLowerCase();
@@ -228,7 +223,7 @@ class Crawler {
 			throw ("unknown event name");
 		}
 		this.probeEvents[eventName] = handler;
-	}
+	};
 
 	probe = (method, args) => {
 		var _this = this;
@@ -239,7 +234,7 @@ class Crawler {
 				return r;
 			}, [method, args]).then(ret => resolve(ret));
 		})
-	}
+	};
 
 	dispatchProbeEvent = async (name, params) => {
 		name = name.toLowerCase();
@@ -259,9 +254,10 @@ class Crawler {
 		}
 
 		return true;
-	}
+	};
 
-	inject = async (page) => {
+	inject = async () => {
+		let page = this._page;
 		let injected = await page.evaluate(async () => {
 			return "__htcrawl_probe_event__" in window;
 		})
@@ -276,7 +272,7 @@ class Crawler {
 		await page.evaluateOnNewDocument(probe.initProbe, this.options, inputValues);
 		await page.evaluateOnNewDocument(probeTextComparator.initTextComparator);
 		await page.evaluateOnNewDocument(utils.hookNativeFunctions, this.options);
-	}
+	};
 
 	navigate = async (url) => {
 		await this.inject(this.page());
@@ -292,7 +288,7 @@ class Crawler {
 		}
 
 		await this._afterNavigation(resp);
-	}
+	};
 
 	clickToNavigate = async (element, timeout) => {
 		const _this = this;
@@ -329,11 +325,10 @@ class Crawler {
 		}
 		_this._errors.push(["navigation", "navigation aborted5"]);
 		throw ("Navigation error");
-	}
+	};
+};
 
-}
-
-bootstrapPage = async function (browser) {
+let bootstrapPage = async function (browser) {
 	var options = this.options,
 		targetUrl = this.targetUrl,
 		pageCookies = this.pageCookies;
