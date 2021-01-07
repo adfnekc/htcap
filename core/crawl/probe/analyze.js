@@ -100,7 +100,7 @@ options.args = [
 
 
 	try {
-		await analyze(crawler, page, "https://baidu.com/");
+		await crawler.analyze(page, "https://baidu.com/");
 		//await analyze(crawler, page, "https://bing.com/");
 		// await analyze(crawler, page, "https://sina.cn/");
 	} catch (err) {
@@ -266,6 +266,8 @@ async function analyze(crawler, page, targetUrl) {
 		//crawler.browser().close();
 	});
 
+	//set analyze single page timeout
+	//TODO needed
 	// execTO = setTimeout(function () {
 	// 	crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
 	// 	end();
@@ -278,12 +280,6 @@ async function analyze(crawler, page, targetUrl) {
 				fn.setItem(s, storage[s].value);
 			}
 		}, options.localStorage)
-	}
-
-	try {
-		await crawler.load();
-	} catch (err) {
-		await end();
 	}
 
 	if (loginSeq) {
@@ -351,7 +347,7 @@ async function analyze(crawler, page, targetUrl) {
 	}
 
 	// scroll page
-	await (async () => {
+	await (async (page) => {
 		await page.evaluate(async function () {
 			let pageHeight = () => { return document.body.scrollHeight; };
 			let scrollTop = () => { return window.pageYOffset || document.documentElement.scrollTop };
@@ -362,7 +358,7 @@ async function analyze(crawler, page, targetUrl) {
 				await window.__PROBE__.sleep(60);
 			}
 		})
-	})();
+	})(page);
 
 	try {
 		if (!options.doNotCrawl) {

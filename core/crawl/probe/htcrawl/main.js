@@ -11,6 +11,9 @@ version.
 
 "use strict";
 
+const fs = require("fs");
+const os = require('os');
+const path = require('path');
 const puppeteer = require('puppeteer');
 const defaults = require('./options').options;
 const probe = require("./probe");
@@ -96,6 +99,7 @@ class Crawler {
 			pageinitialized: function () { }
 			//end: function(){}
 		};
+		this.monitorEvent();
 	};
 
 	page = () => { return this._page; };
@@ -326,6 +330,266 @@ class Crawler {
 		_this._errors.push(["navigation", "navigation aborted5"]);
 		throw ("Navigation error");
 	};
+
+	analyze = async (page, targetUrl) => {
+		await this.navigate(targetUrl);
+		let execTO = null;
+		let domLoaded = false;
+		let endRequested = false;
+		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
+		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
+
+		async function exit() {
+			//await sleep(1000000)
+			//clearTimeout(execTO);
+			//await crawler.browser().close();
+			// fs.unlink(pidfile, (err) => { });
+			// process.exit();
+			return;
+		}
+
+		async function getPageText(page) {
+			const el = await crawler.page().$("html");
+			const v = await el.getProperty('innerText');
+			return await v.jsonValue();
+		}
+
+		async function end() {
+			if (endRequested) return;
+			endRequested = true;
+			if (domLoaded && !crawler.redirect()) {
+				const hash = await getPageText(crawler.page());
+				var json = '["page_hash",' + JSON.stringify(hash) + '],';
+				utils.print_out(json);
+
+				if (options.returnHtml) {
+					json = '["html",' + JSON.stringify(hash) + '],';
+					utils.print_out(json);
+				}
+			}
+
+			await utils.printStatus(crawler);
+			await exit();
+		}
+
+		async function loginErr(message, seqline) {
+			if (seqline) {
+				message = "action " + seqline + ": " + message;
+			}
+			crawler.errors().push(["login_sequence", message]);
+			await end();
+		}
+
+		async function isLogged(page, condition) {
+			const text = await page.content();
+			const regexp = new RegExp(condition, "gi");
+			return text.match(regexp) != null;
+		}
+
+		async function getElement(selector, page) {
+			selector = selector.trim();
+			if (selector.startsWith("$")) {
+				let e = await page.$x(selector.substring(1));
+				return e.length > 0 ? e[0] : null;
+			}
+
+			return await page.$(selector);
+		}
+
+		fs.writeFileSync(pidfile, this.browser().process().pid.toString());
+		utils.print_out("[");
+
+		//set analyze single page timeout
+		//TODO needed
+		// execTO = setTimeout(function () {
+		// 	crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
+		// 	end();
+		// }, options.maxExecTime);
+
+		if (this.options.localStorage) {
+			page.evaluateOnNewDocument((storage) => {
+				for (let s in storage) {
+					let fn = storage[s].type == "S" ? window.sessionStorage : window.localStorage;
+					fn.setItem(s, storage[s].value);
+				}
+			}, this.options.localStorage)
+		}
+
+		if (loginSeq) {
+			if (await isLogged(crawler.page(), loginSeq.loggedinCondition) == false) {
+				if (loginSeq.url && loginSeq.url != targetUrl && !options.loadWithPost) {
+					try {
+						await crawler.navigate(loginSeq.url);
+					} catch (err) {
+						await loginErr("navigating to login page");
+					}
+				}
+				let seqline = 1;
+				for (let seq of loginSeq.sequence) {
+					switch (seq[0]) {
+						case "sleep":
+							await sleep(seq[1]);
+							break;
+						case "write":
+							try {
+								let e = await getElement(seq[1], crawler.page());
+								await e.type(seq[2]);
+							} catch (e) {
+								await loginErr("element not found ", seqline);
+							}
+							break;
+						case "set":
+							try {
+								let e = await getElement(seq[1], crawler.page());
+								await crawler.page().evaluate((el, u) => { el.value = u }, e, seq[2])
+							} catch (e) {
+								await loginErr("element not found", seqline);
+							}
+							break;
+						case "click":
+							try {
+								let e = await getElement(seq[1], crawler.page());
+								await e.click();
+							} catch (e) {
+								await loginErr("element not found", seqline);
+							}
+							await crawler.waitForRequestsCompletion();
+							break;
+						case "clickToNavigate":
+							let e = await getElement(seq[1], crawler.page());
+							if (e == null) {
+								await loginErr("element not found", seqline);
+							}
+							try {
+								await crawler.clickToNavigate(e, seq[2]);
+							} catch (err) {
+								await loginErr(err, seqline);
+							}
+							break;
+						case "assertLoggedin":
+							if (await isLogged(crawler.page(), loginSeq.loggedinCondition) == false) {
+								await loginErr("login sequence faild", seqline);
+							}
+							break;
+						default:
+							await loginErr("action not found", seqline);
+					}
+					seqline++;
+				}
+			}
+		}
+
+		// scroll page
+		await (async (page) => {
+			await page.evaluate(async function () {
+				let pageHeight = () => { return document.body.scrollHeight; };
+				let scrollTop = () => { return window.pageYOffset || document.documentElement.scrollTop };
+				let windowHeight = () => { return window.innerHeight };
+				while (pageHeight() - 60 > scrollTop() + windowHeight()) {
+					window.scrollTo(0, window.pageYOffset + 60);
+					console.log(pageHeight(), scrollTop(), windowHeight())
+					await window.__PROBE__.sleep(60);
+				}
+			})
+		})(page);
+
+		try {
+			if (!options.doNotCrawl) {
+				options.exceptionOnRedirect = true;
+				await crawler.start();
+			}
+			await end();
+		} catch (err) {
+			await end();
+		}
+		console.log("ending...");
+	}
+
+	monitorEvent = () => {
+		this.on("redirect", async function (e, crawler) {
+		});
+
+		this.on("domcontentloaded", async function (e, crawler) {
+			//utils.printCookies(crawler);
+			let domLoaded = true;
+			await utils.printLinks("html", crawler.page());
+		});
+
+		this.on("start", async function (e, crawler) {
+			//console.log("--->Start");
+			await utils.printForms("html", crawler.page());
+		})
+
+		this.on("newdom", async function (e) {
+			await utils.printLinks(e.params.rootNode, this.page())
+			await utils.printForms(e.params.rootNode, this.page())
+			//console.log(e.params)
+		})
+
+		this.on("jsonp", function (e, crawler) {
+			debugger;
+			utils.printRequest(e.params.request)
+		});
+
+		this.on("websocket", function (e, crawler) {
+			utils.printRequest(e.params.request)
+		});
+
+		this.on("formSubmit", function (e, crawler) {
+			utils.printRequest(e.params.request)
+		});
+
+		this.on("navigation", function (e, crawler) {
+			e.params.request.type = "link";
+			utils.printRequest(e.params.request)
+		});
+
+		this.on("fetch", async function (e, crawler) {
+			debugger;
+			utils.printRequest(e.params.request)
+			//await sleep(6000);
+			//return false
+		});
+
+		this.on("xhr", async function (e, crawler) {
+			utils.printRequest(e.params.request)
+
+			//return false
+		});
+
+		this.on("xhrCompleted", function (e, crawler) {
+			//console.log("XHR completed")
+		});
+
+		this.on("fetchCompleted", function (e, crawler) {
+			//console.log("XHR completed")
+		});
+
+		this.on("jsonpCompleted", function (e, crawler) {
+
+		});
+
+		this.on("websocketMessage", function (e, crawler) {
+
+		});
+
+		this.on("websocketSend", function (e, crawler) {
+
+		});
+
+		this.on("eventtriggered", function (e, crawler) {
+			//console.log(e.params)
+		});
+
+		this.on("triggerevent", function (e, crawler) {
+			//console.log(e.params)
+		});
+
+		this.on("earlydetach", function (e, crawler) {
+			//console.log('["warning","earlydetach of element ' + e.params.node + '],')
+			//crawler.browser().close();
+		});
+	}
 };
 
 let bootstrapPage = async function (browser) {
