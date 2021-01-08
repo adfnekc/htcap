@@ -14,13 +14,16 @@ version.
 const fs = require("fs");
 const os = require('os');
 const path = require('path');
+const process = require('process');
 const puppeteer = require('puppeteer');
-const defaults = require('./options').options;
-const probe = require("./probe");
-const probeTextComparator = require("./shingleprint");
 
 const utils = require('./utils');
-const process = require('process');
+const probe = require("./probe");
+const output = require("./output");
+const defaults = require('./options').options;
+const probeTextComparator = require("./shingleprint");
+
+
 
 exports.NewCrawler = async function (options) {
 	options = options || {};
@@ -99,7 +102,6 @@ class Crawler {
 			pageinitialized: function () { }
 			//end: function(){}
 		};
-		this.monitorEvent();
 	};
 
 	page = () => { return this._page; };
@@ -332,12 +334,17 @@ class Crawler {
 	};
 
 	analyze = async (page, targetUrl) => {
-		await this.navigate(targetUrl);
-		let execTO = null;
+		let that = this;
 		let domLoaded = false;
 		let endRequested = false;
 		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
 		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
+
+		let out = new output((msgs) => { console.log("@&=> msgs:", msgs) });
+		this.monitorEvent(out);
+
+		await this.navigate(targetUrl);
+
 
 		async function exit() {
 			//await sleep(1000000)
@@ -357,18 +364,16 @@ class Crawler {
 		async function end() {
 			if (endRequested) return;
 			endRequested = true;
-			if (domLoaded && !crawler.redirect()) {
-				const hash = await getPageText(crawler.page());
-				var json = '["page_hash",' + JSON.stringify(hash) + '],';
-				utils.print_out(json);
+			if (domLoaded && !that.redirect()) {
+				const hash = await getPageText(page);
+				out.print_log("page_hash", JSON.stringify(hash));
 
 				if (options.returnHtml) {
-					json = '["html",' + JSON.stringify(hash) + '],';
-					utils.print_out(json);
+					out.print_log("html",JSON.stringify(hash));
 				}
 			}
 
-			await utils.printStatus(crawler);
+			await out.printStatus(that);
 			await exit();
 		}
 
@@ -397,7 +402,6 @@ class Crawler {
 		}
 
 		fs.writeFileSync(pidfile, this.browser().process().pid.toString());
-		utils.print_out("[");
 
 		//set analyze single page timeout
 		//TODO needed
@@ -494,65 +498,64 @@ class Crawler {
 		})(page);
 
 		try {
-			if (!options.doNotCrawl) {
-				options.exceptionOnRedirect = true;
-				await crawler.start();
+			if (!this.options.doNotCrawl) {
+				this.options.exceptionOnRedirect = true;
+				await this.start();
 			}
 			await end();
 		} catch (err) {
+			console.log(err);
 			await end();
 		}
 		console.log("ending...");
 	}
 
-	monitorEvent = () => {
+	monitorEvent = (out) => {
 		this.on("redirect", async function (e, crawler) {
 		});
 
 		this.on("domcontentloaded", async function (e, crawler) {
 			//utils.printCookies(crawler);
 			let domLoaded = true;
-			await utils.printLinks("html", crawler.page());
+			await out.printLinks("html", crawler.page());
 		});
 
 		this.on("start", async function (e, crawler) {
 			//console.log("--->Start");
-			await utils.printForms("html", crawler.page());
+			await out.printForms("html", crawler.page());
 		})
 
 		this.on("newdom", async function (e) {
-			await utils.printLinks(e.params.rootNode, this.page())
-			await utils.printForms(e.params.rootNode, this.page())
+			await out.printLinks(e.params.rootNode, this.page())
+			await out.printForms(e.params.rootNode, this.page())
 			//console.log(e.params)
 		})
 
 		this.on("jsonp", function (e, crawler) {
-			debugger;
-			utils.printRequest(e.params.request)
+			out.printRequest(e.params.request)
 		});
 
 		this.on("websocket", function (e, crawler) {
-			utils.printRequest(e.params.request)
+			out.printRequest(e.params.request)
 		});
 
 		this.on("formSubmit", function (e, crawler) {
-			utils.printRequest(e.params.request)
+			out.printRequest(e.params.request)
 		});
 
 		this.on("navigation", function (e, crawler) {
 			e.params.request.type = "link";
-			utils.printRequest(e.params.request)
+			out.printRequest(e.params.request)
 		});
 
 		this.on("fetch", async function (e, crawler) {
-			debugger;
-			utils.printRequest(e.params.request)
+			out.printRequest(e.params.request)
 			//await sleep(6000);
 			//return false
 		});
 
 		this.on("xhr", async function (e, crawler) {
-			utils.printRequest(e.params.request)
+			out.printRequest(e.params.request)
 
 			//return false
 		});
