@@ -91,6 +91,11 @@ options.args = [
 		console.log("modify page err,", e);
 	}
 
+	// always dismiss popup dialog including:alert,prompt,confirm or beforeunload
+	page.on("dialog", function (dialog) {
+		dialog.accept();
+	});
+
 	await page.setViewport({
 		width: 1366,
 		height: 768,

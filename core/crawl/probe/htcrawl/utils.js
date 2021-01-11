@@ -20,10 +20,16 @@ exports.hookNativeFunctions = hookNativeFunctions;
 exports.generateRandomValues = generateRandomValues;
 exports.Request = Request;
 
- function hookNativeFunctions(options) {
+function hookNativeFunctions(options) {
 	//alert(window.__PROBE__)
 
-	if(options.mapEvents){
+	if (window.__hookNativeFunctions__ == true) {
+		return
+	} else {
+		window.__hookNativeFunctions__ = true;
+	}
+
+	if (options.mapEvents) {
 
 		// Node.prototype.originaladdEventListener = Node.prototype.addEventListener;
 		// Node.prototype.addEventListener = function(event, func, useCapture){
@@ -33,50 +39,50 @@ exports.Request = Request;
 		// 	Node.prototype.originaladdEventListener(event, func, useCapture);
 		// };
 
-		window.addEventListener = (function(originalAddEventListener){
-			return function(event, func, useCapture){
-				if(event != "load"){ // is this ok???
+		window.addEventListener = (function (originalAddEventListener) {
+			return function (event, func, useCapture) {
+				if (event != "load") { // is this ok???
 					window.__PROBE__.addEventToMap(this, event);
 				}
-				originalAddEventListener.apply(this,[event, func, useCapture]);
+				originalAddEventListener.apply(this, [event, func, useCapture]);
 			}
 		})(window.addEventListener);
 	}
 
 
-	if(options.checkFetch){
+	if (options.checkFetch) {
 		window.fetch = ((_fetch) => async (url, options) => {
 			return await window.__PROBE__.fetchHook(_fetch, url, options);
 		})(window.fetch);
 	}
 
-	if(options.checkAjax){
+	if (options.checkAjax) {
 		XMLHttpRequest.prototype.originalOpen = XMLHttpRequest.prototype.open;
-		XMLHttpRequest.prototype.open = function(method, url, async, user, password){
+		XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
 			window.__PROBE__.xhrOpenHook(this, method, url);
 			return this.originalOpen(method, url, async, user, password);
 		}
 
 		XMLHttpRequest.prototype.originalSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
-		XMLHttpRequest.prototype.setRequestHeader = async function(header, value){
+		XMLHttpRequest.prototype.setRequestHeader = async function (header, value) {
 			this.__request.extra_headers[header] = value;
 			return this.originalSetRequestHeader(header, value);
 		};
 
 
 		XMLHttpRequest.prototype.originalSend = XMLHttpRequest.prototype.send;
-		XMLHttpRequest.prototype.send = async function(data){
+		XMLHttpRequest.prototype.send = async function (data) {
 			var uRet = await window.__PROBE__.xhrSendHook(this, data);
-			if(!this.__skipped && uRet)
+
+			if (!this.__skipped && uRet)
 				return this.originalSend(data);
 
 			return;
 		}
-
 	}
 
 
-	if(options.checkScriptInsertion){
+	if (options.checkScriptInsertion) {
 
 		Node.prototype.originalappendChild = Node.prototype.appendChild;
 		Node.prototype.appendChild = function(node){
@@ -87,23 +93,23 @@ exports.Request = Request;
 		}
 
 		Node.prototype.originalinsertBefore = Node.prototype.insertBefore;
-		Node.prototype.insertBefore = function(node, element){
+		Node.prototype.insertBefore = function (node, element) {
 			//window.__PROBE__.printJSONP(node);
 			window.__PROBE__.jsonpHook(node);
 			return this.originalinsertBefore(node, element);
 		}
 
 		Node.prototype.originalreplaceChild = Node.prototype.replaceChild;
-		Node.prototype.replaceChild = function(node, oldNode){
+		Node.prototype.replaceChild = function (node, oldNode) {
 			//window.__PROBE__.printJSONP(node);
 			window.__PROBE__.jsonpHook(node);
 			return this.originalreplaceChild(node, oldNode);
 		}
 	}
 
-	if(options.checkWebsockets){
-		window.WebSocket = (function(WebSocket){
-			return function(url, protocols){
+	if (options.checkWebsockets) {
+		window.WebSocket = (function (WebSocket) {
+			return function (url, protocols) {
 				var ws = new WebSocket(url, protocols);
 				window.__PROBE__.websocketHook(ws, url);
 				return ws;
@@ -112,15 +118,15 @@ exports.Request = Request;
 	}
 
 
-	if(options.overrideTimeoutFunctions){
-		window.setTimeout = (function(setTimeout){
-			return function(func, time){
+	if (options.overrideTimeoutFunctions) {
+		window.setTimeout = (function (setTimeout) {
+			return function (func, time) {
 				return setTimeout(func, 0, ...Array.from(arguments).slice(2));
 			}
 		})(window.setTimeout);
 
-		window.setInterval = (function(setInterval){
-			return function(func, time){
+		window.setInterval = (function (setInterval) {
+			return function (func, time) {
 				return setInterval(func, 0, ...Array.from(arguments).slice(2));
 			}
 		})(window.setInterval);
@@ -150,7 +156,7 @@ exports.Request = Request;
 
 
 	HTMLFormElement.prototype.originalSubmit = HTMLFormElement.prototype.submit;
-	HTMLFormElement.prototype.submit = function(){
+	HTMLFormElement.prototype.submit = function () {
 		//console.log("=-->"+this.action)
 		// var req = window.__PROBE__.getFormAsRequest(this);
 		// window.__PROBE__.printRequest(req);
@@ -159,10 +165,10 @@ exports.Request = Request;
 	}
 
 	// prevent window.close
-	window.close = function(){ return };
-	window.print = function(){ return };
+	window.close = function () { return };
+	window.print = function () { return };
 
-	window.open = function(url, name, specs, replace){
+	window.open = function (url, name, specs, replace) {
 		//window.__PROBE__.printLink(url);
 		window.__PROBE__.triggerNavigationEvent(url);
 	}
@@ -173,7 +179,7 @@ exports.Request = Request;
 
 
 // generates PSEUDO random values. the same seed will generate the same values
-function generateRandomValues(seed){
+function generateRandomValues(seed) {
 	var values = {};
 	var letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	var numbers = "0123456789";
@@ -187,86 +193,86 @@ function generateRandomValues(seed){
 	var randoms = [];
 	var randoms_i = 0;
 
-	for(var a = 0; a < seed.length; a++){
+	for (var a = 0; a < seed.length; a++) {
 		var i = seed[a].charCodeAt(0);
 		randoms.push(i);
 	}
 
-	var rand = function(max){
+	var rand = function (max) {
 		var i = randoms[randoms_i] % max;
 		randoms_i = (randoms_i + 1) % randoms.length;
 		return i;
 	}
 
-	var randarr = function(arr, len){
+	var randarr = function (arr, len) {
 		var r;
 		var ret = "";
-		for(var a = 0; a < len; a++){
-			r = rand(arr.length - 1) ;
+		for (var a = 0; a < len; a++) {
+			r = rand(arr.length - 1);
 			ret += arr[r];
 		}
 		return ret;
 	};
 
 	var generators = {
-		string: function(){
+		string: function () {
 			return randarr(letters, 8);
 		},
-		number: function(){
+		number: function () {
 			return randarr(numbers, 3);
 		},
-		month: function(){
+		month: function () {
 			return randarr(months, 1);
 		},
-		year: function(){
+		year: function () {
 			return randarr(years, 1);
 		},
-		date: function(){
+		date: function () {
 			return generators.year() + "-" + generators.month() + "-" + generators.month();
 		},
-		color: function(){
+		color: function () {
 			return "#" + randarr(numbers, 6);
 		},
-		week: function(){
+		week: function () {
 			return generators.year() + "-W" + randarr(months.slice(0, 6), 1);
 		},
-		time: function(){
+		time: function () {
 			return generators.month() + ":" + generators.month();
 		},
-		datetimeLocal: function(){
+		datetimeLocal: function () {
 			return generators.date() + "T" + generators.time();
 		},
-		domain: function(){
-			return randarr(letters, 12).toLowerCase() + randarr(domains ,1);
+		domain: function () {
+			return randarr(letters, 12).toLowerCase() + randarr(domains, 1);
 		},
-		email: function(){
+		email: function () {
 			return randarr(names, 1) + "." + generators.surname() + "@" + generators.domain();
 		},
-		url: function(){
+		url: function () {
 			return "http://www." + generators.domain();
 		},
-		humandate: function(){
-			return  generators.month() + "/" + generators.month() + "/" + generators.year();
+		humandate: function () {
+			return generators.month() + "/" + generators.month() + "/" + generators.year();
 		},
-		password: function(){
+		password: function () {
 			return randarr(letters, 3) + randarr(symbols, 1) + randarr(letters, 2) + randarr(numbers, 3) + randarr(symbols, 2);
 		},
-		surname: function(){
+		surname: function () {
 			return randarr(surnames, 1);
 		},
-		lastname: function(){
+		lastname: function () {
 			return generators.surname();
 		},
-		firstname: function(){
+		firstname: function () {
 			return randarr(names, 1);
 		},
-		tel: function(){
+		tel: function () {
 			return "+" + randarr(numbers, 1) + " " + randarr(numbers, 10);
 		}
 	};
 
 
-	for(var type in generators){
+	for (var type in generators) {
 		values[type] = generators[type]();
 	}
 
@@ -278,28 +284,28 @@ function generateRandomValues(seed){
 
 
 
-function parseCookiesFromHeaders(headers, url){
+function parseCookiesFromHeaders(headers, url) {
 	var a, b, c, ret = [];
 	var purl = urlparser(url);
 	var domain = purl.hostname;
 
-	for(header in headers){
+	for (header in headers) {
 		//console.log(JSON.stringify(header))
-		if(header.toLowerCase() == "set-cookie"){
+		if (header.toLowerCase() == "set-cookie") {
 			var cookies = headers[header].split("\n");	 // no multiple cookies due to a chrome bug (??)
-			for(b = 0; b < cookies.length; b++){
+			for (b = 0; b < cookies.length; b++) {
 				var ck = cookies[b].split(/; */);
-				var cookie = {domain: domain, path: "/", secure: false, httponly:false};
-				for(c = 0; c < ck.length; c++){
+				var cookie = { domain: domain, path: "/", secure: false, httponly: false };
+				for (c = 0; c < ck.length; c++) {
 					var kv = ck[c].split(/=(.+)/);
-					if(c == 0){
+					if (c == 0) {
 						cookie.name = kv[0];
 						cookie.value = kv[1];
 						continue;
 					}
-					switch(kv[0].toLowerCase()){
+					switch (kv[0].toLowerCase()) {
 						case "expires":
-							if(!("expires" in cookie))
+							if (!("expires" in cookie))
 								cookie.expires = parseInt((new Date(kv[1])).getTime() / 1000);
 							break;
 						case "max-age":
@@ -316,8 +322,8 @@ function parseCookiesFromHeaders(headers, url){
 					}
 				}
 
-				if(!cookie.expires) // expires MUST be in seconds ..
-					cookie.expires = parseInt((new Date()).getTime() / 1000) + (60*60*24*365);
+				if (!cookie.expires) // expires MUST be in seconds ..
+					cookie.expires = parseInt((new Date()).getTime() / 1000) + (60 * 60 * 24 * 365);
 				ret.push(cookie);
 			}
 		}
@@ -326,7 +332,7 @@ function parseCookiesFromHeaders(headers, url){
 };
 
 
-function Request(type, method, url, data, trigger, extra_headers){
+function Request(type, method, url, data, trigger, extra_headers) {
 	this.type = type;
 	this.method = method;
 	this.url = url;

@@ -56,7 +56,7 @@ exports.NewCrawler = async function (options) {
 	let browser = await puppeteer.launch({ headless: options.headlessChrome, ignoreHTTPSErrors: true, executablePath: options.executablePath, args: chromeArgs });
 	let page = await browser.newPage();
 
-	page.on('console', consoleObj => console.log(consoleObj.text()));
+	//page.on('console', consoleObj => console.log(consoleObj.text()));
 
 	let c = new Crawler(options, browser, page);
 
@@ -525,9 +525,9 @@ class Crawler {
 			await out.printForms("html", crawler.page());
 		})
 
-		this.on("newdom", async function (e) {
-			await out.printLinks(e.params.rootNode, this.page())
-			await out.printForms(e.params.rootNode, this.page())
+		this.on("newdom", async function (e,crawler) {
+			await out.printLinks(e.params.rootNode, crawler.page())
+			await out.printForms(e.params.rootNode, crawler.page())
 			//console.log(e.params)
 		})
 
