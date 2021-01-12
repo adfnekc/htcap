@@ -13,14 +13,15 @@ version.
 
 const fs = require("fs");
 const os = require('os');
+const urlparse = require('url');
 const path = require('path');
 const process = require('process');
 const puppeteer = require('puppeteer');
 
-const utils = require('./utils');
 const probe = require("./probe");
 const output = require("./output");
 const defaults = require('./options').options;
+const { utils, RequestModel } = require('./utils');
 const probeTextComparator = require("./shingleprint");
 
 
@@ -56,10 +57,54 @@ exports.NewCrawler = async function (options) {
 	let browser = await puppeteer.launch({ headless: options.headlessChrome, ignoreHTTPSErrors: true, executablePath: options.executablePath, args: chromeArgs });
 	let page = await browser.newPage();
 
-	//page.on('console', consoleObj => console.log(consoleObj.text()));
+	// set page properties
+	try {
+		// setRequestInterception
+		await page.setRequestInterception(true);
+		//page.on('console', consoleObj => console.log("==>browser.console:",consoleObj.text()));
+		page.setDefaultNavigationTimeout(options.navigationTimeout);
+		await page.setViewport({ width: 1366, height: 768, });
+
+		// always dismiss popup dialog including:alert,prompt,confirm or beforeunload
+		page.on("dialog", function (dialog) {
+			dialog.accept();
+		});
+
+		if (options.referer) {
+			await page.setExtraHTTPHeaders({
+				'Referer': options.referer
+			});
+		}
+
+		if (options.extraHeaders) {
+			await page.setExtraHTTPHeaders(options.extraHeaders);
+		}
+
+		for (let i = 0; i < options.setCookies.length; i++) {
+			if (!options.setCookies[i].expires)
+				options.setCookies[i].expires = parseInt((new Date()).getTime() / 1000) + (60 * 60 * 24 * 365);
+			//console.log(options.setCookies[i]);
+			await page.setCookie(options.setCookies[i]);
+		}
+
+		if (options.httpAuth) {
+			await page.authenticate({ username: options.httpAuth[0], password: options.httpAuth[1] });
+		}
+
+		if (options.userAgent) {
+			await page.setUserAgent(options.userAgent);
+		}
+
+		if (options.bypassCSP) {
+			await page.setBypassCSP(true);
+		}
+	} catch (e) {
+		console.log("modify page err,", e);
+		throw "modify page err " + e;
+	}
 
 	let c = new Crawler(options, browser, page);
-
+	await c.inject();
 	return c;
 }
 
@@ -77,6 +122,7 @@ class Crawler {
 		this._errors = [];
 		this.error_codes = ["contentType", "navigation", "response"];
 		this.probeEvents = {
+			newtab: function () { },
 			start: function () { },
 			xhr: function () { },
 			xhrcompleted: function () { },
@@ -113,7 +159,6 @@ class Crawler {
 		if (this.options.verbose) console.log("LOADDING-> ", url)
 
 		try {
-			await this._page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36');
 			return await this._page.goto(url, {
 				waitUntil: 'load'
 			});
@@ -124,6 +169,10 @@ class Crawler {
 	};
 
 	_afterNavigation = async (resp) => {
+		// return if resp is null
+		if (!resp) {
+			return
+		}
 		var _this = this;
 		var assertContentType = function (hdrs) {
 			let ctype = 'content-type' in hdrs ? hdrs['content-type'] : "";
@@ -153,8 +202,6 @@ class Crawler {
 			await _this._page.evaluate(async function () {
 				window.__PROBE__.takeDOMSnapshot();
 			});
-
-			_this._loaded = true;
 
 			await _this.dispatchProbeEvent("domcontentloaded", {});
 
@@ -242,26 +289,6 @@ class Crawler {
 		})
 	};
 
-	dispatchProbeEvent = async (name, params) => {
-		name = name.toLowerCase();
-		var ret, evt = {
-			name: name,
-			params: params || {
-			}
-		};
-
-		ret = await this.probeEvents[name](evt, this);
-		if (ret === false) {
-			return false;
-		}
-
-		if (typeof ret == "object") {
-			return ret;
-		}
-
-		return true;
-	};
-
 	inject = async () => {
 		let page = this._page;
 		let injected = await page.evaluate(async () => {
@@ -335,6 +362,37 @@ class Crawler {
 
 	analyze = async (page, targetUrl) => {
 		let that = this;
+		that.browser().on("targetcreated", async (target) => {
+			//console.log("===>on targetcreated:", target.url());
+			if (target.type() === 'page') {
+				let targeturl = target.url();
+				const p = await target.page();
+				await Promise.all([
+					p.close(),
+					that.dispatchProbeEvent("newtab", { "request": RequestModel(targeturl, "newtab") })
+				]);
+			}
+		});
+
+		page.on('request', async req => {
+			targetUrl = urlparse.parse(targetUrl);
+			//console.log("navgation or redirect =>", req.url(), "host:", targetUrl.host, `navigation:${this._allowNavigation},redirect:${req.redirectChain().length > 0}`);
+			// Active navigation or in a redirect round
+			if (this._allowNavigation) {
+				return req.continue();
+			} else if (req.redirectChain().length > 0) {
+				await this.dispatchProbeEvent("redirect", { request: RequestModel(req.url(), "newtab", req._method) });
+				return req.continue();
+			} else if (req.isNavigationRequest() && req.frame() == page.mainFrame()) { //Navigation actions that are not active navigation
+				req.abort('aborted');
+				await this.dispatchProbeEvent("navigation", { request: RequestModel(req.url(), "navigation", req._method) });
+				return;
+			} else {
+				req.abort('failed');
+			}
+			return;
+		});
+
 		let domLoaded = false;
 		let endRequested = false;
 		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
@@ -344,8 +402,7 @@ class Crawler {
 		this.monitorEvent(out);
 
 		await this.navigate(targetUrl);
-
-
+		
 		async function exit() {
 			//await sleep(1000000)
 			//clearTimeout(execTO);
@@ -369,7 +426,7 @@ class Crawler {
 				out.print_log("page_hash", JSON.stringify(hash));
 
 				if (options.returnHtml) {
-					out.print_log("html",JSON.stringify(hash));
+					out.print_log("html", JSON.stringify(hash));
 				}
 			}
 
@@ -510,8 +567,30 @@ class Crawler {
 		console.log("ending...");
 	}
 
+	dispatchProbeEvent = async (name, params) => {
+		name = name.toLowerCase();
+		var ret, evt = {
+			name: name,
+			params: params || {
+			}
+		};
+
+		ret = await this.probeEvents[name](evt, this);
+		if (ret === false) {
+			return false;
+		}
+
+		if (typeof ret == "object") {
+			return ret;
+		}
+
+		return true;
+	};
+
 	monitorEvent = (out) => {
 		this.on("redirect", async function (e, crawler) {
+			e.params.request.type = "redirect";
+			await out.printRequest(e.params.request);
 		});
 
 		this.on("domcontentloaded", async function (e, crawler) {
@@ -525,7 +604,7 @@ class Crawler {
 			await out.printForms("html", crawler.page());
 		})
 
-		this.on("newdom", async function (e,crawler) {
+		this.on("newdom", async function (e, crawler) {
 			await out.printLinks(e.params.rootNode, crawler.page())
 			await out.printForms(e.params.rootNode, crawler.page())
 			//console.log(e.params)
@@ -544,7 +623,14 @@ class Crawler {
 		});
 
 		this.on("navigation", function (e, crawler) {
-			e.params.request.type = "link";
+			let type = e.params.request.type;
+			e.params.request.type = type ? type : "link";
+			out.printRequest(e.params.request)
+		});
+
+		this.on("newtab", function (e, crawler) {
+			let type = e.params.request.type;
+			e.params.request.type = type ? type : "newtab";
 			out.printRequest(e.params.request)
 		});
 

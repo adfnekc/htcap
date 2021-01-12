@@ -14,12 +14,6 @@ version.
 const urlparser = require('url').parse;
 const fs = require('fs');
 
-
-exports.parseCookiesFromHeaders = parseCookiesFromHeaders;
-exports.hookNativeFunctions = hookNativeFunctions;
-exports.generateRandomValues = generateRandomValues;
-exports.Request = Request;
-
 function hookNativeFunctions(options) {
 	//alert(window.__PROBE__)
 
@@ -85,7 +79,7 @@ function hookNativeFunctions(options) {
 	if (options.checkScriptInsertion) {
 
 		Node.prototype.originalappendChild = Node.prototype.appendChild;
-		Node.prototype.appendChild = function(node){
+		Node.prototype.appendChild = function (node) {
 			//window.__PROBE__.printJSONP(node);
 
 			//window.__PROBE__.jsonpHook(node);
@@ -140,13 +134,13 @@ function hookNativeFunctions(options) {
 	// };
 
 	Node.prototype.originalRemoveChild = Node.prototype.removeChild;
-	Node.prototype.removeChild = function(node){
-		if(!node.__analyzed){
+	Node.prototype.removeChild = function (node) {
+		if (!node.__analyzed) {
 			//console.log("elem not analyzed "+ window.__PROBE__.stringifyElement(node) )
 			//console.log(window.__PROBE__.getTrigger());
 		}
 		this.__removed = true;
-		if(this instanceof HTMLElement){
+		if (this instanceof HTMLElement) {
 			for (let c of this.getElementsByTagName("*"))
 				c.__removed = true;
 		}
@@ -282,8 +276,6 @@ function generateRandomValues(seed) {
 };
 
 
-
-
 function parseCookiesFromHeaders(headers, url) {
 	var a, b, c, ret = [];
 	var purl = urlparser(url);
@@ -341,6 +333,25 @@ function Request(type, method, url, data, trigger, extra_headers) {
 	this.extra_headers = extra_headers || {};
 }
 
+function RequestModel(url, type = 'link', method = 'GET', data = null, trigger = null, extra_headers = {}) {
+	return {
+		url: url,
+		type: type,
+		method: method,
+		data: data,
+		trigger: trigger,
+		extra_headers: extra_headers,
+	}
+
+}
+
+let utils = {
+	parseCookiesFromHeaders: parseCookiesFromHeaders,
+	hookNativeFunctions: hookNativeFunctions,
+	generateRandomValues: generateRandomValues
+}
+
+module.exports = { utils, RequestModel };
 
 
 
