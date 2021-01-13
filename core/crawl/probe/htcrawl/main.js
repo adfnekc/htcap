@@ -360,8 +360,9 @@ class Crawler {
 		throw ("Navigation error");
 	};
 
-	analyze = async (page, targetUrl) => {
+	analyze = async (targetUrl) => {
 		let that = this;
+		let page = that.page();
 		that.browser().on("targetcreated", async (target) => {
 			//console.log("===>on targetcreated:", target.url());
 			if (target.type() === 'page') {
@@ -398,11 +399,12 @@ class Crawler {
 		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
 		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
 
-		let out = new output((msgs) => { console.log("@&=> msgs:", msgs) });
+		let outputFunc = this.options.outputFunc ? this.options.outputFunc : (msgs) => { console.log("@&=> msgs:", msgs) };
+		let out = new output(outputFunc);
 		this.monitorEvent(out);
 
 		await this.navigate(targetUrl);
-		
+
 		async function exit() {
 			//await sleep(1000000)
 			//clearTimeout(execTO);
@@ -413,7 +415,7 @@ class Crawler {
 		}
 
 		async function getPageText(page) {
-			const el = await crawler.page().$("html");
+			const el = await page.$("html");
 			const v = await el.getProperty('innerText');
 			return await v.jsonValue();
 		}

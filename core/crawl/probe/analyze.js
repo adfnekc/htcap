@@ -12,59 +12,53 @@ version.
 
 "use strict";
 
-
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
 const utils = require('./utils');
-const process = require('process');
 const htcrawl = require("./htcrawl");
+const taskQueue = require("./taskQueue");
+const socketIO = require("./exchangeMsg");
 
+main();
 
-var sleep = function (n) {
-	return new Promise(resolve => {
-		setTimeout(resolve, n);
-	});
-};
+async function main() {
+	let options = utils.getOptionsFromCMD();
 
-
-var argv = utils.parseArgs(process.argv, "hVaftUdICc:MSp:Tsx:A:r:mHX:PD:R:Oi:u:vy:E:lJ:L:zMg:", {});
-var options = argv.opts
-
-var targetUrl = argv.args[0];
-
-
-if (!targetUrl) {
-	utils.usage();
-	process.exit(0);
-}
-
-targetUrl = targetUrl.trim();
-if (targetUrl.length < 4 || targetUrl.substring(0, 4).toLowerCase() != "http") {
-	targetUrl = "http://" + targetUrl;
-}
-
-if (os.platform() == "win32") {
-	options.executablePath = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
-}
-
-options.openChromeDevtoos = true;
-options.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36";
-options.args = [
-	'--no-sandbox',
-	'--disable-gpu',
-];
-
-(async () => {
-	let crawler = await htcrawl.NewCrawler(options);
-	let page = await crawler.page();
-
-	try {
-		await crawler.analyze(page, "http://127.0.0.1:8080/1.html");
-		
-		//await analyze(crawler, page, "https://bing.com/");
-		// await analyze(crawler, page, "https://sina.cn/");
-	} catch (err) {
-		console.log(err);
+	let q = new taskQueue();
+	let socket = new socketIO(21818, q);
+	options.outputFunc = (msg) => {
+		try {
+			msg = JSON.stringify(msg);
+		} catch (e) {
+			console.error("JSON.stringify msg err,", msg);
+		}
+		socket.send(msg);
 	}
-})();
+	let threads = [];
+	for (let i = 0; i < options.threadnum; i++) {
+		let statu = startCrawlerTask(q, options);
+		threads.push(statu);
+	};
+	let status = await Promise.all(threads);
+	console.log("Task results for threads:", status);
+}
+
+
+async function startCrawlerTask(q, options) {
+	let crawler = await htcrawl.NewCrawler(options);
+
+	let target = "";
+	try {
+		while (true) {
+			while (!q.isEmpty()) {
+				target = q.takeOne();
+				if (target == "") {
+					continue;
+				}
+				await crawler.analyze(target);
+			}
+			await utils.sleep(5000);
+		}
+	} catch (e) {
+		console.log(`crawler.analyze err,url:${target} err:${e}`);
+	}
+	return 0;
+}

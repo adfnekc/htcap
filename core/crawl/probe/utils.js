@@ -9,22 +9,12 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 */
 
-//"use strict";
-
-//const urlparser = require('url').parse
-const { URL } = require('url');
+"use strict";
+const os = require("os");
 const fs = require('fs');
+const process = require('process');
 
-var outfile = null;
-
-exports.parseArgs = function (args, optstring, defaults) {
-	var g = getopt(args, optstring);
-	g.args.splice(0, 2);
-	return { opts: parseArgsToOptions(g, defaults), args: g.args };
-}
-
-exports.usage = usage;
-
+let outfile = null;
 
 function parseArgsToOptions(args, defaults) {
 	let options = {};
@@ -97,6 +87,8 @@ function parseArgsToOptions(args, defaults) {
 			case "m":
 				options.outputMappedEvents = true;
 				break;
+			case "n":
+				options.threadnum = args.opts[a][1];
 			case "H":
 				options.returnHtml = true;
 				break;
@@ -164,7 +156,6 @@ function parseArgsToOptions(args, defaults) {
 	return options;
 };
 
-
 // @todo error on Unknown option ds
 function getopt(args, optstring) {
 	var args = args.slice();
@@ -192,15 +183,22 @@ function getopt(args, optstring) {
 	}
 
 	return ret;
-}
+};
 
-function usage() {
+exports.parseArgs = function (args, optstring, defaults) {
+	var g = getopt(args, optstring);
+	g.args.splice(0, 2);
+	return { opts: parseArgsToOptions(g, defaults), args: g.args };
+};
+
+exports.usage = () => {
 	var usage = "Usage: analyze.js [options] <url>\n" +
 		"  -V              verbose\n" +
 		"  -a              don't check ajax\n" +
 		"  -f              don't fill values\n" +
 		"  -t              don't trigger events (onload only)\n" +
 		"  -s              don't check websockets\n" +
+		"  -n <threadnum>  browser thread num" +
 		"  -T              don't trigger mapped events\n" +
 		"  -S              don't check for <script> insertion\n" +
 		"  -P              load page with POST\n" +
@@ -227,5 +225,41 @@ function usage() {
 		"  -M              don't simulate real mouse/keyboard events\n" +
 		"  -J <path>       print json to file instead of stdout";
 	console.log(usage);
-}
+};
 
+exports.getOptionsFromCMD = () => {
+	let argv = this.parseArgs(process.argv, "hVaftUdICc:MSp:Tsn:x:A:r:mHX:PD:R:Oi:u:vy:E:lJ:L:zMg:", {});
+	let options = argv.opts
+
+	// for debug
+	options.openChromeDevtoos = true;
+	options.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36";
+	options.args = [
+		'--no-sandbox',
+		'--disable-gpu',
+	];
+	if (os.platform() == "win32") {
+		options.executablePath = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+	}
+
+	return options;
+};
+
+exports.formatURL = (targetUrl) => {
+	targetUrl = targetUrl.trim();
+	if (targetUrl.length < 4 || targetUrl.substring(0, 4).toLowerCase() != "http") {
+		targetUrl = "http://" + targetUrl;
+	}
+	return targetUrl;
+};
+
+/**
+ * @param {int} ms means milliseconds
+ */
+exports.sleep = async (ms) => {
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			resolve(true);
+		}, ms);
+	});
+};

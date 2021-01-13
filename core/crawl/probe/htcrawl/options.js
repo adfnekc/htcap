@@ -11,6 +11,7 @@ version.
 
 exports.options = {
 	id: 0,
+	threadnum: 3,
 	verbose: false,
 	checkAjax: true,
 	fillValues: true,
