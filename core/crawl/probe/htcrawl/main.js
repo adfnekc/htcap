@@ -375,23 +375,23 @@ class Crawler {
 			}
 		});
 
+		// removing all event listeners before listening to the request event is to prevent multiple-listen
+		page.removeAllListeners("request");
 		page.on('request', async req => {
 			targetUrl = urlparse.parse(targetUrl);
 			//console.log("navgation or redirect =>", req.url(), "host:", targetUrl.host, `navigation:${this._allowNavigation},redirect:${req.redirectChain().length > 0}`);
 			// Active navigation or in a redirect round
 			if (this._allowNavigation) {
-				return req.continue();
+				return await req.continue();
 			} else if (req.redirectChain().length > 0) {
 				await this.dispatchProbeEvent("redirect", { request: RequestModel(req.url(), "newtab", req._method) });
-				return req.continue();
+				return await req.continue();
 			} else if (req.isNavigationRequest() && req.frame() == page.mainFrame()) { //Navigation actions that are not active navigation
-				req.abort('aborted');
 				await this.dispatchProbeEvent("navigation", { request: RequestModel(req.url(), "navigation", req._method) });
-				return;
+				return await req.abort('aborted');
 			} else {
-				req.abort('failed');
+				return await req.abort('failed');
 			}
-			return;
 		});
 
 		let domLoaded = false;
@@ -625,9 +625,10 @@ class Crawler {
 		});
 
 		this.on("navigation", function (e, crawler) {
+			console.trace("navigation", e.params.request, (new Date).getTime());
 			let type = e.params.request.type;
 			e.params.request.type = type ? type : "link";
-			out.printRequest(e.params.request)
+			out.printRequest(e.params.request);
 		});
 
 		this.on("newtab", function (e, crawler) {

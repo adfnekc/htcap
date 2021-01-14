@@ -32,7 +32,7 @@ module.exports = class socketIO extends io {
         const server = net.createServer();
         server.on('connection', (sock) => {
             sock.on('error', (e) => {
-                console.log("on error,", e);
+                console.log("socketIO on error,", e);
                 sock.end();
             });
 
@@ -43,20 +43,21 @@ module.exports = class socketIO extends io {
 
             sock.setEncoding('utf8');
             sock.on('data', (chunk) => {
-                console.log("on data:", chunk);
+                console.log("socketIO on data:", chunk);
                 this.input(chunk);
             });
             sock.on('close', (had_err) => {
-                console.log("on close,had_err:", had_err);
+                console.log("socketIO on close,had_err:", had_err);
                 this.connected = false;
             });
 
             this.output = (msg) => {
+                console.log(`socketIO write ${msg.length} `, msg);
                 sock.write(msg);
             };
         })
         server.listen(port);
-        console.log("✈listening on ", port);
+        console.log("socketIO listening on ", port);
         return server;
     }
 }

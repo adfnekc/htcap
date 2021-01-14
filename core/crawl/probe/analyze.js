@@ -49,11 +49,10 @@ async function startCrawlerTask(q, options) {
 	try {
 		while (true) {
 			while (!q.isEmpty()) {
-				target = q.takeOne();
-				if (target == "") {
-					continue;
+				target = utils.formatURL(q.takeOne());
+				if (target) {
+					await crawler.analyze(target);
 				}
-				await crawler.analyze(target);
 			}
 			await utils.sleep(5000);
 		}
