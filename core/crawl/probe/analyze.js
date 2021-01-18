@@ -15,7 +15,7 @@ version.
 const utils = require('./utils');
 const htcrawl = require("./htcrawl");
 const taskQueue = require("./taskQueue");
-const socketIO = require("./exchangeMsg");
+const io = require("./exchangeMsg").socketIO;
 
 main();
 
@@ -23,7 +23,7 @@ async function main() {
 	let options = utils.getOptionsFromCMD();
 
 	let q = new taskQueue();
-	let socket = new socketIO(21818, q);
+	let socket = new io(11218, q);
 	options.outputFunc = (msg) => {
 		try {
 			msg = JSON.stringify(msg);

@@ -34,6 +34,7 @@ exports.NewCrawler = async function (options) {
 		'--disable-gpu',
 		'--hide-scrollbars',
 		'--mute-audio',
+		'--disable-extensions',
 		'--ignore-certificate-errors',
 		'--ignore-certificate-errors-spki-list',
 		'--ssl-version-max=tls1.3',
@@ -41,7 +42,11 @@ exports.NewCrawler = async function (options) {
 		'--disable-web-security',
 		'--allow-running-insecure-content',
 		'--proxy-bypass-list=<-loopback>',
-		'--window-size=1300,1000'
+		'--window-size=1300,1000',
+		'-–disable-dev-shm-usage',
+		'-–no-first-run',
+		'-–no-zygote',
+		'-–single-process'
 	];
 	for (let a in defaults) {
 		if (!(a in options)) options[a] = defaults[a];
@@ -113,7 +118,6 @@ class Crawler {
 	constructor(options, browser, page) {
 		this._redirect = null;
 		this._allowNavigation = false;
-		this._firstRun = true;
 		this.options = options;
 		this._browser = browser;
 		this._page = page;
@@ -366,6 +370,7 @@ class Crawler {
 		that.browser().on("targetcreated", async (target) => {
 			//console.log("===>on targetcreated:", target.url());
 			if (target.type() === 'page') {
+				
 				let targeturl = target.url();
 				const p = await target.page();
 				await Promise.all([
@@ -403,7 +408,15 @@ class Crawler {
 		let out = new output(outputFunc);
 		this.monitorEvent(out);
 
-		await this.navigate(targetUrl);
+		try {
+			await this.navigate(targetUrl);
+		} catch (e) {
+			console.error("error in navigate ", targetUrl, e)
+			// clear previrous errors
+			this._errors = []
+			return e
+		}
+
 
 		async function exit() {
 			//await sleep(1000000)
@@ -590,6 +603,12 @@ class Crawler {
 	};
 
 	monitorEvent = (out) => {
+
+		// if (this.monitored) {
+		// 	return
+		// }
+		// this.monitored = true;
+
 		this.on("redirect", async function (e, crawler) {
 			e.params.request.type = "redirect";
 			await out.printRequest(e.params.request);

@@ -234,10 +234,7 @@ exports.getOptionsFromCMD = () => {
 	// for debug
 	options.openChromeDevtoos = true;
 	options.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36";
-	options.args = [
-		'--no-sandbox',
-		'--disable-gpu',
-	];
+
 	if (os.platform() == "win32") {
 		options.executablePath = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
 	}
