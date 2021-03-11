@@ -213,7 +213,7 @@ class ProbeExecutor:
 					jsn = jsn[0]
 				probeArray = self.load_probe_json(jsn)
 			except Exception as e:
-				raise
+				raise e
 
 
 			if probeArray:

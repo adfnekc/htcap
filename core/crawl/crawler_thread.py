@@ -105,7 +105,7 @@ class CrawlerThread(threading.Thread):
 			process_timeout=Shared.options['process_timeout']
 		)
 		errors.extend(self.probe_executor.errors)
-		return probe;
+		return probe
 
 	def wait_pause(self):
 		while True:

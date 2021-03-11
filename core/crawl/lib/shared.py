@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 """
 HTCAP - beta 1
@@ -12,21 +12,21 @@ version.
 
 
 class Shared:
-	"""
-	data shared between threads
-	"""
-	
-	main_condition = None
-	th_condition = None
+    """
+    data shared between threads
+    """
 
-	requests = []
-	requests_index = 0
-	crawl_results = []
+    main_condition = None
+    th_condition = None
 
-	starturl = ""
-	start_cookies = []
-	allowed_domains = set()
-	excluded_urls = set()	
-	
-	options = {}	
+    requests = []
+    requests_index = 0
+    crawl_results = []
 
+    starturl = ""
+    start_cookies = []
+    allowed_domains = set()
+    excluded_urls = set()
+
+    options = {}
+    probe_cmd = ""
