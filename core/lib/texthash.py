@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*- 
-
+# -*- coding: utf-8 -*-
 """
 HTCAP 
 Author: filippo.cavallarin@wearesegment.com
@@ -26,43 +25,48 @@ from urllib.parse import urlsplit, urljoin, parse_qsl
 from core.lib.exception import *
 from core.constants import *
 
+
 class TextHash:
-	simhash_threshold = 10
-	shingleprint_threshold = 0.95
+    simhash_threshold = 10
+    shingleprint_threshold = 0.95
 
-	def __init__(self, text):
-		self.text = text
+    def __init__(self, text):
+        self.text = text
 
-		if len(text) < 32:
-			##self.hash = {"type": "textmatch", "value": text}
-			self.hash = {"type": "simhash", "value": Simhash(text).value}
-		elif len(text) < 256:
-			self.hash = {"type": "simhash", "value": Simhash(text).value}
-		else:
-			self.hash = {"type": "shingleprint", "value": ShinglePrint(text).features}
+        if len(text) < 32:
+            ##self.hash = {"type": "textmatch", "value": text}
+            self.hash = {"type": "simhash", "value": Simhash(text).value}
+        elif len(text) < 256:
+            self.hash = {"type": "simhash", "value": Simhash(text).value}
+        else:
+            self.hash = {
+                "type": "shingleprint",
+                "value": ShinglePrint(text).features
+            }
 
-	@staticmethod
-	def simhash_distance(s1, s2):
-		x = (s1 ^ s2) & ((1 << 64) - 1)
-		ans = 0
-		while x:
-			ans += 1
-			x &= x - 1
-		return ans
+    @staticmethod
+    def simhash_distance(s1, s2):
+        x = (s1 ^ s2) & ((1 << 64) - 1)
+        ans = 0
+        while x:
+            ans += 1
+            x &= x - 1
+        return ans
 
-
-	@staticmethod
-	def compare(h1, h2):
-		if not h1 or not h2:
-			return False
-		if h1['type'] != h2['type']:
-			return False
-		if h1['type'] == "textmatch":
-			return h1['value'] == h2['value']
-		elif h1['type'] == "simhash":
-			#print "-->%s"%+ TextHash.simhash_distance(h1['value'], h2['value'])
-			return TextHash.simhash_distance(h1['value'], h2['value']) <= TextHash.simhash_threshold
-		else:
-			#print "-->%s"%+ ShinglePrint.score(h1['value'], h2['value'])
-			return ShinglePrint.score(h1['value'], h2['value']) >= TextHash.shingleprint_threshold
-		return False
+    @staticmethod
+    def compare(h1, h2):
+        if not h1 or not h2:
+            return False
+        if h1['type'] != h2['type']:
+            return False
+        if h1['type'] == "textmatch":
+            return h1['value'] == h2['value']
+        elif h1['type'] == "simhash":
+            #print "-->%s"%+ TextHash.simhash_distance(h1['value'], h2['value'])
+            return TextHash.simhash_distance(
+                h1['value'], h2['value']) <= TextHash.simhash_threshold
+        else:
+            #print "-->%s"%+ ShinglePrint.score(h1['value'], h2['value'])
+            return ShinglePrint.score(
+                h1['value'], h2['value']) >= TextHash.shingleprint_threshold
+        return False

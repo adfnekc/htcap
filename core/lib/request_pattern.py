@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*- 
-
+# -*- coding: utf-8 -*-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -19,56 +18,54 @@ import json
 
 
 class RequestPattern:
+    def __init__(self, request):
+        self.request = request
+        self.pattern = None
 
-	def __init__(self, request):
-		self.request = request
-		self.pattern = None
+        self.set_pattern()
 
-		self.set_pattern()
-
-
-	def set_pattern(self):
-		"""
+    def set_pattern(self):
+        """
 		sets requst pattern for comparision
 		"""
 
-		# pattern[0] = url_pattern, pattern[1] = data_pattern
-		self.pattern = [self.get_url_pattern(self.request.url), None]
+        # pattern[0] = url_pattern, pattern[1] = data_pattern
+        self.pattern = [self.get_url_pattern(self.request.url), None]
 
-		if self.request.method == "GET" or not self.request.data:
-			return
+        if self.request.method == "GET" or not self.request.data:
+            return
 
-		# try xml
-		try:
-			root = ET.fromstring(self.request.data)
-			self.pattern[1] = self.get_xml_pattern(root)
-		except Exception as e:
-			# try json
-			try:
-				self.pattern[1] = self.get_json_pattern(self.request.data)
-			except Exception as e:
-				# try url-encoded
-				try:
-					self.pattern[1] = self.get_urlencoded_pattern(self.request.data, False)
-				except Exception as e:
-					#print "! UNKNOWN POST DATA FORMAT"
-					pass
+        # try xml
+        try:
+            root = ET.fromstring(self.request.data)
+            self.pattern[1] = self.get_xml_pattern(root)
+        except Exception as e:
+            # try json
+            try:
+                self.pattern[1] = self.get_json_pattern(self.request.data)
+            except Exception as e:
+                # try url-encoded
+                try:
+                    self.pattern[1] = self.get_urlencoded_pattern(
+                        self.request.data, False)
+                except Exception as e:
+                    #print "! UNKNOWN POST DATA FORMAT"
+                    pass
 
-
-
-	def get_url_pattern(self, url):
-		"""
+    def get_url_pattern(self, url):
+        """
 		returns url pattern for comparision (query and data parameters are sorted and without values)
 		"""
-		purl = urlsplit(url)
-		patt = [purl.scheme, purl.netloc, purl.path, self.get_urlencoded_pattern(purl.query)]
+        purl = urlsplit(url)
+        patt = [
+            purl.scheme, purl.netloc, purl.path,
+            self.get_urlencoded_pattern(purl.query)
+        ]
 
-		return patt
+        return patt
 
-
-
-	def get_xml_pattern(self, node):
-		"""
+    def get_xml_pattern(self, node):
+        """
 		returns the xml tree as an array without values, example:
 
 		<root>
@@ -88,55 +85,48 @@ class RequestPattern:
 		]]
 		"""
 
-		# describe a tag as its name plus the name of its properties (sorted)
-		patt = [node.tag] + [x for x in sorted(node.attrib.keys())]
+        # describe a tag as its name plus the name of its properties (sorted)
+        patt = [node.tag] + [x for x in sorted(node.attrib.keys())]
 
-		#collect child nodes in the form of "node array" (tagname+props)
-		ch = []
-		for child in node:
-			ch.append(self.get_xml_pattern(child))
+        #collect child nodes in the form of "node array" (tagname+props)
+        ch = []
+        for child in node:
+            ch.append(self.get_xml_pattern(child))
 
-		if ch:
-			# sort using the tagname as the key
-			ch.sort(key=lambda x:x[0])
-			patt.append(ch) 
+        if ch:
+            # sort using the tagname as the key
+            ch.sort(key=lambda x: x[0])
+            patt.append(ch)
 
-		return patt
+        return patt
 
-
-
-	def get_json_pattern(self, data):
-		"""
+    def get_json_pattern(self, data):
+        """
 		returns an object with values set to zero (sorting of keys is not needed), example:
 		"""
 
-		patt = json.loads(data)
-		self.nullify_object_values(patt)
+        patt = json.loads(data)
+        self.nullify_object_values(patt)
 
-		return patt
+        return patt
 
-
-
-	def nullify_object_values(self, obj):
-		"""
+    def nullify_object_values(self, obj):
+        """
 		sets to 0 all object values
 		"""
-		keys = list(obj.keys()) if isinstance(obj, dict) else list(range(0, len(obj)))
+        keys = list(obj.keys()) if isinstance(obj, dict) else list(
+            range(0, len(obj)))
 
-		for k in keys:
-			if not hasattr(obj[k], '__iter__'):
-				obj[k] = 0
-			else:
-				self.nullify_object_values(obj[k])
+        for k in keys:
+            if not hasattr(obj[k], '__iter__'):
+                obj[k] = 0
+            else:
+                self.nullify_object_values(obj[k])
 
-
-
-	def get_urlencoded_pattern(self, data, ignoreErrors = True):
-		"""
+    def get_urlencoded_pattern(self, data, ignoreErrors=True):
+        """
 		returns query parameters sorted and without vaules
 		"""
-		# parse_qs(qs[, keep_blank_values[, strict_parsing]])
-		query = parse_qs(data, True, not ignoreErrors)
-		return sorted(query.keys())
-
-
+        # parse_qs(qs[, keep_blank_values[, strict_parsing]])
+        query = parse_qs(data, True, not ignoreErrors)
+        return sorted(query.keys())

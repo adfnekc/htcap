@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -37,8 +36,10 @@ def get_program_infos():
     return infos
 
 
-def generate_filename(name, ext=None, out_file_overwrite=False, ask_out_file_overwrite=False):
-
+def generate_filename(name,
+                      ext=None,
+                      out_file_overwrite=False,
+                      ask_out_file_overwrite=False):
     def fname():
         return ".".join([f for f in ft if f])
 
@@ -196,7 +197,10 @@ def get_cmd_path(exe_name):
 
 
 def get_phantomjs_cmd():
-    return [get_cmd_path("phantomjs"), "--ignore-ssl-errors=yes", "--web-security=false", "--ssl-protocol=any", "--debug=false"]
+    return [
+        get_cmd_path("phantomjs"), "--ignore-ssl-errors=yes",
+        "--web-security=false", "--ssl-protocol=any", "--debug=false"
+    ]
 
 
 def get_node_cmd():
@@ -232,8 +236,10 @@ def check_dependences(base_dir, usePhantomjs=False):
     probe_dir = os.path.join(base_dir, 'probe')
 
     try:
-        subprocess.run("node %s" %
-                       os.path.join(probe_dir, "analyze.js"), shell=True, check=True, stdout=subprocess.PIPE)
+        subprocess.run("node %s" % os.path.join(probe_dir, "analyze.js"),
+                       shell=True,
+                       check=True,
+                       stdout=subprocess.PIPE)
     except Exception as e:
         errors.append("dependences err %s" % e)
 
@@ -255,7 +261,6 @@ def strip_html_tags(html):
             String without html tags
 
     """
-
     class FetchText(HTMLParser):
         def __init__(self):
             HTMLParser.__init__(self)

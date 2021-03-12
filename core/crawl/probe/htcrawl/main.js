@@ -368,6 +368,7 @@ class Crawler {
 		let that = this;
 		let page = that.page();
 		that.browser().on("targetcreated", async (target) => {
+			//TODO need close page quickily,and try avoid listen event twice
 			//console.log("===>on targetcreated:", target.url());
 			if (target.type() === 'page') {
 				

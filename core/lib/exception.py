@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*- 
-
+# -*- coding: utf-8 -*-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -10,17 +9,18 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
+
 class NotHtmlException(Exception):
-	pass
+    pass
 
 
 class RedirectException(Exception):
-	pass
+    pass
 
 
 class ThreadExitRequestException(Exception):
-	pass
+    pass
+
 
 class MalformedUrlException(Exception):
-	pass
-
+    pass

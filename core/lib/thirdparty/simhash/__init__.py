@@ -1,6 +1,5 @@
 # Created by 1e0n in 2013
 
-
 import sys
 import re
 import hashlib
@@ -17,7 +16,6 @@ else:
 
 
 class Simhash(object):
-
     def __init__(self, value, f=64, reg=r'[\w\u4e00-\u9fcc]+', hashfunc=None):
         """
         `f` is the dimensions of fingerprints
@@ -36,6 +34,7 @@ class Simhash(object):
         self.value = None
 
         if hashfunc is None:
+
             def _hashfunc(x):
                 return int(hashlib.md5(x).hexdigest(), 16)
 
@@ -55,7 +54,10 @@ class Simhash(object):
             raise Exception('Bad parameter with type {}'.format(type(value)))
 
     def _slide(self, content, width=4):
-        return [content[i:i + width] for i in range(max(len(content) - width + 1, 1))]
+        return [
+            content[i:i + width]
+            for i in range(max(len(content) - width + 1, 1))
+        ]
 
     def _tokenize(self, content):
         content = content.lower()
@@ -65,7 +67,7 @@ class Simhash(object):
 
     def build_by_text(self, content):
         features = self._tokenize(content)
-        features = {k:sum(1 for _ in g) for k, g in groupby(sorted(features))}
+        features = {k: sum(1 for _ in g) for k, g in groupby(sorted(features))}
         return self.build_by_features(features)
 
     def build_by_features(self, features):
@@ -105,7 +107,6 @@ class Simhash(object):
 
 
 class SimhashIndex(object):
-
     def __init__(self, objs, f=64, k=2):
         """
         `objs` is a list of (obj_id, simhash)
@@ -139,7 +140,8 @@ class SimhashIndex(object):
             dups = self.bucket[key]
             logging.debug('key:%s', key)
             if len(dups) > 200:
-                logging.warning('Big bucket found. key:%s, len:%s', key, len(dups))
+                logging.warning('Big bucket found. key:%s, len:%s', key,
+                                len(dups))
 
             for dup in dups:
                 sim2, obj_id = dup.split(',', 1)
@@ -183,9 +185,9 @@ class SimhashIndex(object):
     def get_keys(self, simhash):
         for i, offset in enumerate(self.offsets):
             if i == (len(self.offsets) - 1):
-                m = 2 ** (self.f - offset) - 1
+                m = 2**(self.f - offset) - 1
             else:
-                m = 2 ** (self.offsets[i + 1] - offset) - 1
+                m = 2**(self.offsets[i + 1] - offset) - 1
             c = simhash.value >> offset & m
             yield '%x:%x' % (c, i)
 

@@ -414,8 +414,7 @@ class HttpGet:
                                  timeout=self.timeout,
                                  cookies=self.request.cookies,
                                  proxies=self.proxy)
-            print("HttpGet get_file ===>", url, res.status_code,
-                  len(res.text))
+            print("HttpGet get_file ===>", url, res.status_code, len(res.text))
         except Exception as e:
             raise e
         return res.text()

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*- 
-
+# -*- coding: utf-8 -*-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -15,9 +14,10 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin, urlparse
 
 
-def get_urls(html:str):
+def get_urls(html: str):
     finder = UrlFinder(html)
     return finder.get_urls()
+
 
 class UrlFinder:
     def __init__(self, html):
@@ -53,5 +53,6 @@ class UrlHTMLParser(HTMLParser):
                 if key == "href":
                     if re.match("^https?://", val, re.I):
                         self.urls.extend([val])
-                    elif not re.match("^[a-z]+:", val, re.I) and not val.startswith("#"):
+                    elif not re.match("^[a-z]+:", val,
+                                      re.I) and not val.startswith("#"):
                         self.urls.extend([urljoin(self.base_url, val)])

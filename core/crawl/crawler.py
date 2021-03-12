@@ -247,10 +247,9 @@ class Crawler:
         req_to_crawl = start_requests
         while True:
             try:
-
-                if self.display_progress and not self.verbose:
-                    tot = (crawled + pending)
-                    # pb.out(tot, crawled)
+                # if self.display_progress and not self.verbose:
+                #     tot = (crawled + pending)
+                #     pb.out(tot, crawled)
 
                 if pending == 0:
                     # is the check of running threads really needed?

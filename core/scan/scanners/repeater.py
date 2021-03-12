@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -10,26 +9,20 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
-
-
 from core.scan.base_scanner import BaseScanner, ScannerThread
 
 
 class Repeater(BaseScanner):
-	def init(self, argv):
-		return True
+    def init(self, argv):
+        return True
 
+    def get_settings(self):
+        return dict(request_types="form,link,redirect,xhr,fetch",
+                    num_threads=10)
 
-	def get_settings(self):
-		return dict(
-			request_types = "form,link,redirect,xhr,fetch",
-			num_threads = 10
-		)
-
-
-	class Scan(ScannerThread):
-		def run(self):
-			try:
-				self.send_request(ignore_errors=True)
-			except Exception as e:
-				self.sprint("-->%s" % e)
+    class Scan(ScannerThread):
+        def run(self):
+            try:
+                self.send_request(ignore_errors=True)
+            except Exception as e:
+                self.sprint("-->%s" % e)

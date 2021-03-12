@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*- 
-
+# -*- coding: utf-8 -*-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -11,11 +10,9 @@ version.
 """
 
 
-
 class CrawlResult:
-	def __init__(self, request, found_requests = None, errors = None, page_hash = 0):
-		self.request = request
-		self.found_requests = found_requests if found_requests else []
-		self.errors = errors if errors else []
-		self.page_hash = page_hash
-
+    def __init__(self, request, found_requests=None, errors=None, page_hash=0):
+        self.request = request
+        self.found_requests = found_requests if found_requests else []
+        self.errors = errors if errors else []
+        self.page_hash = page_hash

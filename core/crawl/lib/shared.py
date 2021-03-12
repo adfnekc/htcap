@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com

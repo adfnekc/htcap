@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -10,14 +9,12 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
-
 THSTAT_WAITING = 0
 THSTAT_RUNNING = 1
 
 CRAWLSCOPE_DOMAIN = "domain"
 CRAWLSCOPE_DIRECTORY = "directory"
 CRAWLSCOPE_URL = "url"
-
 
 CRAWLMODE_PASSIVE = "passive"
 CRAWLMODE_ACTIVE = "active"
@@ -33,7 +30,6 @@ REQTYPE_REDIRECT = "redirect"
 REQTYPE_IMAGE = "image"
 REQTYPE_FILE = "file"
 REQTYPE_UNKNOWN = "unknown"
-
 
 ERROR_CONTENTTYPE = "content_type"
 ERROR_TIMEOUT = "timeout"

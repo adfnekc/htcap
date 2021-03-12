@@ -12,20 +12,31 @@ import ssl
 try:
     import urllib.request, urllib.error, urllib.parse
     import http.client
-except ImportError: # Python 3
+except ImportError:  # Python 3
     import urllib.request as urllib2
     import http.client as httplib
 
-from . import socks # $ pip install PySocks
+from . import socks  # $ pip install PySocks
+
 
 def merge_dict(a, b):
     d = a.copy()
     d.update(b)
     return d
 
+
 class SocksiPyConnection(http.client.HTTPConnection):
-    def __init__(self, proxytype, proxyaddr, proxyport=None, rdns=True, username=None, password=None, *args, **kwargs):
-        self.proxyargs = (proxytype, proxyaddr, proxyport, rdns, username, password)
+    def __init__(self,
+                 proxytype,
+                 proxyaddr,
+                 proxyport=None,
+                 rdns=True,
+                 username=None,
+                 password=None,
+                 *args,
+                 **kwargs):
+        self.proxyargs = (proxytype, proxyaddr, proxyport, rdns, username,
+                          password)
         http.client.HTTPConnection.__init__(self, *args, **kwargs)
 
     def connect(self):
@@ -35,9 +46,19 @@ class SocksiPyConnection(http.client.HTTPConnection):
             self.sock.settimeout(self.timeout)
         self.sock.connect((self.host, self.port))
 
+
 class SocksiPyConnectionS(http.client.HTTPSConnection):
-    def __init__(self, proxytype, proxyaddr, proxyport=None, rdns=True, username=None, password=None, *args, **kwargs):
-        self.proxyargs = (proxytype, proxyaddr, proxyport, rdns, username, password)
+    def __init__(self,
+                 proxytype,
+                 proxyaddr,
+                 proxyport=None,
+                 rdns=True,
+                 username=None,
+                 password=None,
+                 *args,
+                 **kwargs):
+        self.proxyargs = (proxytype, proxyaddr, proxyport, rdns, username,
+                          password)
         http.client.HTTPSConnection.__init__(self, *args, **kwargs)
 
     def connect(self):
@@ -48,6 +69,7 @@ class SocksiPyConnectionS(http.client.HTTPSConnection):
         sock.connect((self.host, self.port))
         self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file)
 
+
 class SocksiPyHandler(urllib.request.HTTPHandler, urllib.request.HTTPSHandler):
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -57,14 +79,23 @@ class SocksiPyHandler(urllib.request.HTTPHandler, urllib.request.HTTPSHandler):
     def http_open(self, req):
         def build(host, port=None, timeout=0, **kwargs):
             kw = merge_dict(self.kw, kwargs)
-            conn = SocksiPyConnection(*self.args, host=host, port=port, timeout=timeout, **kw)
+            conn = SocksiPyConnection(*self.args,
+                                      host=host,
+                                      port=port,
+                                      timeout=timeout,
+                                      **kw)
             return conn
+
         return self.do_open(build, req)
 
     def https_open(self, req):
         def build(host, port=None, timeout=0, **kwargs):
             kw = merge_dict(self.kw, kwargs)
-            conn = SocksiPyConnectionS(*self.args, host=host, port=port, timeout=timeout, **kw)
+            conn = SocksiPyConnectionS(*self.args,
+                                       host=host,
+                                       port=port,
+                                       timeout=timeout,
+                                       **kw)
             return conn
-        return self.do_open(build, req)
 
+        return self.do_open(build, req)
