@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
@@ -10,25 +9,15 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
-
-import sys
-import os
-import datetime
 import time
-import json
-import re
 import http.cookiejar
-import urllib.request
-import urllib.parse
-import urllib.error
 import urllib.request
 import urllib.error
 import urllib.parse
 import base64
 import ssl
-from urllib.parse import urlsplit, urljoin
-from urllib.parse import urlencode
-from core.crawl.lib.urlfinder import UrlFinder
+import requests as reqlib
+from core.crawl.lib.urlfinder import UrlFinder, get_urls
 
 import core.lib.thirdparty.pysocks.socks as socks
 from core.lib.thirdparty.pysocks.sockshandler import SocksiPyHandler
@@ -38,20 +27,24 @@ from core.lib.cookie import Cookie
 
 from core.lib.request import Request
 
-
 from core.lib.utils import *
 from core.constants import *
 
 
-class HttpGet:
-
-    def __init__(self, request, timeout, retries=None, useragent=None, proxy=None, extra_headers=None):
-        print("http.get===>", request.url)
+class _HttpGet:
+    def __init__(self,
+                 request,
+                 timeout,
+                 retries=None,
+                 useragent=None,
+                 proxy=None,
+                 extra_headers=None):
+        print("http.get ===>", request.url)
         self.request = request
         self.timeout = timeout
         self.retries = retries if retries else 1
-        self.proxy = parse_proxy_string(
-            proxy) if isinstance(proxy, str) else proxy
+        self.proxy = parse_proxy_string(proxy) if isinstance(proxy,
+                                                             str) else proxy
         self.retries_interval = 0.5
         self.useragent = useragent
         self.extra_headers = extra_headers if extra_headers else {}
@@ -71,8 +64,9 @@ class HttpGet:
 
             # SSLContext is available from python 2.7.9
             if hasattr(ssl, "SSLContext"):
-                handlers.append(urllib.request.HTTPSHandler(
-                    context=ssl.SSLContext(ssl.PROTOCOL_SSLv23)))
+                handlers.append(
+                    urllib.request.HTTPSHandler(
+                        context=ssl.SSLContext(ssl.PROTOCOL_SSLv23)))
 
             if not follow_redirect:
                 handlers.append(RedirectHandler)
@@ -80,14 +74,19 @@ class HttpGet:
             if self.proxy:
                 if self.proxy['proto'] == "socks5":
                     # dns queries WONT go thru self.proxy .. consider "monkey patching"...
-                    socksh = SocksiPyHandler(
-                        socks.PROXY_TYPE_SOCKS5, self.proxy['host'], int(self.proxy['port']))
+                    socksh = SocksiPyHandler(socks.PROXY_TYPE_SOCKS5,
+                                             self.proxy['host'],
+                                             int(self.proxy['port']))
                     handlers.append(socksh)
                 elif self.proxy['proto'] == "http":
-                    proxy_string = "http://%s:%s" % (
-                        self.proxy['host'], self.proxy['port'])
-                    httproxy = urllib.request.ProxyHandler(
-                        {'http': proxy_string, 'https': proxy_string})
+                    proxy_string = "http://%s:%s" % (self.proxy['host'],
+                                                     self.proxy['port'])
+                    httproxy = urllib.request.ProxyHandler({
+                        'http':
+                        proxy_string,
+                        'https':
+                        proxy_string
+                    })
                     handlers.append(httproxy)
 
             if self.useragent:
@@ -112,17 +111,16 @@ class HttpGet:
             return opener
 
         except RedirectException as e:
-            raise
+            raise e
         except Exception as e:
-            print("\n--->"+url+" "+str(e))
+            print("\n--->" + url + " " + str(e))
             raise
 
     def get_requests(self):  # Shared.options['process_timeout']
-
         if self.request.method == "POST":
             raise Exception("POST method with urllib is not supported yet")
 
-        #parent = self.request.parent.url if self.request.parent else ""
+        # parent = self.request.parent.url if self.request.parent else ""
 
         self.retries_interval = 0.5
 
@@ -150,8 +148,8 @@ class HttpGet:
                 res = opener.open(req, None, self.timeout)
 
                 for cookie in jar_response:
-                    set_cookie.append(
-                        Cookie(cookie.__dict__, self.request.url))
+                    set_cookie.append(Cookie(cookie.__dict__,
+                                             self.request.url))
 
                 # @TODO !! WRONG!! (check if wrong...not sure)
                 ctype = res.info()['Content-Type']
@@ -169,23 +167,32 @@ class HttpGet:
                     try:
                         urls = finder.get_urls()
                     except Exception as e:
-                        raise
+                        raise e
 
                 for url in urls:
                     # @TODO handle FORMS
-                    requests.append(Request(REQTYPE_LINK, "GET", url, parent=self.request,
-                                            set_cookie=set_cookie, parent_db_id=self.request.db_id))
+                    requests.append(
+                        Request(REQTYPE_LINK,
+                                "GET",
+                                url,
+                                parent=self.request,
+                                set_cookie=set_cookie,
+                                parent_db_id=self.request.db_id))
 
                 break
 
             except RedirectException as e:
                 set_cookie = []
                 for cookie in jar_response:
-                    set_cookie.append(
-                        Cookie(cookie.__dict__, self.request.url))
+                    set_cookie.append(Cookie(cookie.__dict__,
+                                             self.request.url))
 
-                r = Request(REQTYPE_REDIRECT, "GET", str(
-                    e), parent=self.request, set_cookie=set_cookie, parent_db_id=self.request.db_id)
+                r = Request(REQTYPE_REDIRECT,
+                            "GET",
+                            str(e),
+                            parent=self.request,
+                            set_cookie=set_cookie,
+                            parent_db_id=self.request.db_id)
                 requests.append(r)
                 break
             except NotHtmlException:
@@ -193,14 +200,19 @@ class HttpGet:
             except Exception as e:
                 self.retries -= 1
                 if self.retries == 0:
-                    raise
+                    raise e
                 time.sleep(self.retries_interval)
 
         return requests
 
     # Shared.options['process_timeout']
-    def send_request(self, method=None, url=None, data=None, cookies=None, ignore_errors=False, follow_redirect=False):
-
+    def send_request(self,
+                     method=None,
+                     url=None,
+                     data=None,
+                     cookies=None,
+                     ignore_errors=False,
+                     follow_redirect=False):
         if not method:
             method = self.request.method
 
@@ -235,12 +247,14 @@ class HttpGet:
                             existing_cookies.append(c)
                     jar_request.set_cookie(clc)
 
-                for cookie in [x for x in cookies if x not in existing_cookies]:
+                for cookie in [
+                        x for x in cookies if x not in existing_cookies
+                ]:
                     c = Cookie(cookie)  # check what to do with cookie.setter
                     jar_request.set_cookie(c.get_cookielib_cookie())
 
-                opener = self.urllib2_opener(
-                    self.request, None, follow_redirect)
+                opener = self.urllib2_opener(self.request, None,
+                                             follow_redirect)
                 req = urllib.request.Request(
                     url=url, data=data.encode() if data else None)
                 req.get_method = lambda: method
@@ -252,7 +266,7 @@ class HttpGet:
                 # for hn in headers:
                 # 	req.add_header(hn, headers[hn])
 
-                if data and not 'Content-type' in req.headers:
+                if data and 'Content-type' not in req.headers:
                     req.add_header("Content-type", detect_content_type(data))
                 now = time.time()
                 try:
@@ -265,9 +279,10 @@ class HttpGet:
 
                 ret['code'] = res.getcode()
                 ret['url'] = res.geturl()
-                #ret['headers'] = [x.strip() for x in res.info().headers]
-                ret['headers'] = ["%s: %s" %
-                                  x for x in list(res.info().items())]
+                # ret['headers'] = [x.strip() for x in res.info().headers]
+                ret['headers'] = [
+                    "%s: %s" % x for x in list(res.info().items())
+                ]
                 ret['body'] = res.read()
                 ret['time'] = time.time() - now
 
@@ -276,13 +291,13 @@ class HttpGet:
             except Exception as e:
                 self.retries -= 1
                 if self.retries == 0:
-                    raise
+                    raise e
                 time.sleep(self.retries_interval)
 
+        print("req <=== ", ret)
         return ret
 
     def get_file(self, url=None):  # Shared.options['process_timeout']
-
         if self.request.method == "POST":
             raise Exception(
                 "get_file: POST method with urllib is not supported yet")
@@ -297,7 +312,6 @@ class HttpGet:
         cont = ""
         while True:
             try:
-
                 for cookie in self.request.cookies:
                     jar_request.set_cookie(cookie.get_cookielib_cookie())
 
@@ -318,3 +332,90 @@ class HttpGet:
                 time.sleep(self.retries_interval)
 
         return cont
+
+
+class HttpGet:
+    def __init__(self,
+                 request: Request,
+                 timeout: int,
+                 retries=None,
+                 useragent=None,
+                 proxy=None,
+                 extra_headers=None):
+        self.request = request
+        self.timeout = timeout
+        self.retries = retries if retries else 1
+        self.proxy = parse_proxy_string(proxy) if isinstance(proxy,
+                                                             str) else proxy
+        self.retries_interval = 0.5
+        self.useragent = useragent
+        self.extra_headers = extra_headers if extra_headers else {}
+
+    def get_requests(self):
+        requests = []
+
+        try:
+            headers = {
+                "user-agent": self.useragent,
+            }
+            headers.update(self.extra_headers)
+            res = reqlib.request(method=self.request.method,
+                                 url=self.request.url,
+                                 verify=False,
+                                 timeout=self.timeout,
+                                 cookies=self.request.cookies,
+                                 proxies=self.proxy)
+        except Exception as e:
+            raise e
+
+        print("HttpGet get_requests ===>", self.request.url, res.status_code,
+              len(res.text))
+
+        if res.headers["content-type"] is not None and res.headers[
+                'content-type'].lower().split(";")[0] != "text/html":
+            raise NotHtmlException(ERROR_CONTENTTYPE)
+
+        if res.content is None:
+            raise NotHtmlException
+
+        try:
+            urls = get_urls(res.text)
+            for url in urls:
+                # @TODO handle FORMS
+                requests.append(
+                    Request(REQTYPE_LINK,
+                            "GET",
+                            url,
+                            parent=self.request,
+                            set_cookie=res.headers["set_cookie"],
+                            parent_db_id=self.request.db_id))
+        except Exception as e:
+            raise e
+
+        return requests
+
+    def send_request(self,
+                     method=None,
+                     url=None,
+                     data=None,
+                     cookies=None,
+                     ignore_errors=False,
+                     follow_redirect=False):
+        print("HttpGET -> send_request", method, url, data, cookies,
+              ignore_errors, follow_redirect)
+
+    def get_file(self, url=None):
+        if url is None:
+            url = self.request.url
+        try:
+            res = reqlib.request(method=self.request.method,
+                                 url=url,
+                                 verify=False,
+                                 timeout=self.timeout,
+                                 cookies=self.request.cookies,
+                                 proxies=self.proxy)
+            print("HttpGet get_file ===>", url, res.status_code,
+                  len(res.text))
+        except Exception as e:
+            raise e
+        return res.text()

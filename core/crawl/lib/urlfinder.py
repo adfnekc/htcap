@@ -15,6 +15,10 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin, urlparse
 
 
+def get_urls(html:str):
+    finder = UrlFinder(html)
+    return finder.get_urls()
+
 class UrlFinder:
     def __init__(self, html):
         self.html = html

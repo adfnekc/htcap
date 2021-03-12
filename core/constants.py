@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 """
 HTCAP - beta 1
@@ -31,6 +31,7 @@ REQTYPE_JSONP = "jsonp"
 REQTYPE_FORM = "form"
 REQTYPE_REDIRECT = "redirect"
 REQTYPE_IMAGE = "image"
+REQTYPE_FILE = "file"
 REQTYPE_UNKNOWN = "unknown"
 
 
