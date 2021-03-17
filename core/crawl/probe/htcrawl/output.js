@@ -1,40 +1,41 @@
 module.exports = class output {
     constructor(outfunc) {
         this.outfunc = outfunc;
-        this.outmsgs = [];
+        this.outmsgs = {
+            status: "",
+            errors: "",
+            redirect: "",
+            cookies: [],
+            requests: []
+        };
         this.printedRequests = [];
     }
 
-    __print_out = (str) => {
-        this.outmsgs.push(str);
-    }
-
     print_log = (type, msg) => {
-        this.__print_out([type, msg]);
+        switch (type) {
+            case "request": this.outmsgs["requests"].push(msg);
+                break;
+            case "cookie": this.outmsgs["cookies"].push(...msg);
+                break;
+        }
     }
 
     printCookies = async (crawler) => {
-        this.print_log("cookies", JSON.stringify(await crawler.cookies()));
+        this.print_log("cookie", await crawler.cookies());
     }
 
     printStatus = async (crawler) => {
-        let o = {
-            status: "ok"
-        };
-        if (crawler.errors().length > 0 && !crawler.redirect()) {
-            o.errors = JSON.stringify(crawler.errors());
-            o.status = "error";
-            o.code = crawler.errors()[0][0];
-            o.message = crawler.errors()[0][1];
-        }
+        let status = "ok"
         if (crawler.redirect()) {
-            o.redirect = crawler.redirect();
+            this.outmsgs["redirect"] = crawler.redirect();
         }
-
+        if (crawler.errors().length > 0 && !crawler.redirect()) {
+            this.outmsgs["errors"] = crawler.errors();
+            status = "error";
+        }
+        this.outmsgs["status"] = status
         await this.printCookies(crawler);
-        this.__print_out(JSON.stringify(o));
-
-        this.outfunc(this.outmsgs);
+        this.outfunc(JSON.stringify(this.outmsgs));
     }
 
     printRequest = (req) => {
@@ -61,8 +62,8 @@ module.exports = class output {
 
     printLinks = async (rootNode, page) => {
         if (!rootNode) return;
-        var el = await page.$(rootNode);
-        var req, t;
+        let el = await page.$(rootNode);
+        let req, t;
         if (!el) return;
         var links = await el.$$("a");
         for (let l of links) {
@@ -76,7 +77,7 @@ module.exports = class output {
             t = t.split(";");
             if (t.length > 1 && t[1] && t[1].toLowerCase().startsWith("url=")) {
                 var purl = new URL(page.url());
-                var absurl = new URL(t[1].substr(4), purl.protocol + "//" + purl.hostname);
+                let absurl = new URL(t[1].substr(4), purl.protocol + "//" + purl.hostname);
                 req = { type: "link", url: absurl.href };
                 this.printRequest(req);
             }
@@ -85,12 +86,12 @@ module.exports = class output {
 
     printForms = async (rootNode, page) => {
         if (!rootNode) return;
-        var el = await page.$(rootNode);//.then(el => {
+        let el = await page.$(rootNode);//.then(el => {
         //page.evaluate(e => console.log(e.innerText), el)
         if (!el) return;
-        var forms = await el.$$("form");//.then(forms => {
+        let forms = await el.$$("form");//.then(forms => {
         for (let f of forms) {
-            var req = await this.getFormAsRequest(f, page); //.then(req => {
+            let req = await this.getFormAsRequest(f, page); //.then(req => {
             this.printRequest(req);
         }
     }

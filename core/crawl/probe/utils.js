@@ -16,6 +16,42 @@ const process = require('process');
 
 let outfile = null;
 
+exports.usage = () => {
+	var usage = "Usage: analyze.js [options] <url>\n" +
+		"  -V              verbose\n" +
+		"  -a              don't check ajax\n" +
+		"  -f              don't fill values\n" +
+		"  -t              don't trigger events (onload only)\n" +
+		"  -s              don't check websockets\n" +
+		"  -n <threadnum>  browser thread num" +
+		"  -T              don't trigger mapped events\n" +
+		"  -S              don't check for <script> insertion\n" +
+		"  -P              load page with POST\n" +
+		"  -D              POST data\n" +
+		"  -R <string>     random string used to generate random values - the same random string will generate the same random values\n" +
+		"  -X              comma separated list of excluded urls\n" +
+		"  -C              don't get cookies\n" +
+		"  -c <path>       set cookies from file (json)\n" +
+		"  -p <user:pass>  http auth \n" +
+		"  -x <seconds>    maximum execution time \n" +
+		"  -A <user agent> set user agent \n" +
+		"  -r <url>        set referer \n" +
+		"  -H              return generated html \n" +
+		"  -I              load images\n" +
+		"  -O              dont't override timeout functions\n" +
+		"  -u              path to user script to inject\n" +
+		"  -K              keep elements in the DOM (prevent removal)\n" +
+		"  -y <host:port>  use http proxY\n" +
+		"  -l              do not run chrome in headless mode\n" +
+		"  -v              exit after parsing options, used to verify user script\n" +
+		"  -E              set extra http headers (json encoded {name:value}\n" +
+		"  -L              set login sequence\n" +
+		"  -z              do not crawl\n" +
+		"  -M              don't simulate real mouse/keyboard events\n" +
+		"  -J <path>       print json to file instead of stdout";
+	console.log(usage);
+};
+
 function parseArgsToOptions(args, defaults) {
 	let options = {};
 	for (var a in defaults) {
@@ -191,45 +227,14 @@ exports.parseArgs = function (args, optstring, defaults) {
 	return { opts: parseArgsToOptions(g, defaults), args: g.args };
 };
 
-exports.usage = () => {
-	var usage = "Usage: analyze.js [options] <url>\n" +
-		"  -V              verbose\n" +
-		"  -a              don't check ajax\n" +
-		"  -f              don't fill values\n" +
-		"  -t              don't trigger events (onload only)\n" +
-		"  -s              don't check websockets\n" +
-		"  -n <threadnum>  browser thread num" +
-		"  -T              don't trigger mapped events\n" +
-		"  -S              don't check for <script> insertion\n" +
-		"  -P              load page with POST\n" +
-		"  -D              POST data\n" +
-		"  -R <string>     random string used to generate random values - the same random string will generate the same random values\n" +
-		"  -X              comma separated list of excluded urls\n" +
-		"  -C              don't get cookies\n" +
-		"  -c <path>       set cookies from file (json)\n" +
-		"  -p <user:pass>  http auth \n" +
-		"  -x <seconds>    maximum execution time \n" +
-		"  -A <user agent> set user agent \n" +
-		"  -r <url>        set referer \n" +
-		"  -H              return generated html \n" +
-		"  -I              load images\n" +
-		"  -O              dont't override timeout functions\n" +
-		"  -u              path to user script to inject\n" +
-		"  -K              keep elements in the DOM (prevent removal)\n" +
-		"  -y <host:port>  use http proxY\n" +
-		"  -l              do not run chrome in headless mode\n" +
-		"  -v              exit after parsing options, used to verify user script\n" +
-		"  -E              set extra http headers (json encoded {name:value}\n" +
-		"  -L              set login sequence\n" +
-		"  -z              do not crawl\n" +
-		"  -M              don't simulate real mouse/keyboard events\n" +
-		"  -J <path>       print json to file instead of stdout";
-	console.log(usage);
-};
-
 exports.getOptionsFromCMD = () => {
 	let argv = this.parseArgs(process.argv, "hVaftUdICc:MSp:Tsn:x:A:r:mHX:PD:R:Oi:u:vy:E:lJ:L:zMg:", {});
 	let options = argv.opts
+
+	if (!options.threadnum || options.threadnum < 1){
+		console.error("options must specfied more than 1 thread,use '-n' ")
+		process.exit(1);
+	}
 
 	// for debug
 	options.openChromeDevtoos = true;
@@ -238,6 +243,8 @@ exports.getOptionsFromCMD = () => {
 	if (os.platform() == "win32") {
 		options.executablePath = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
 	}
+
+	console.log(options)
 
 	return options;
 };

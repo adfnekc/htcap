@@ -28,56 +28,55 @@ class Probe:
         self.user_output = []
         self.page_hash = 0
 
-        status = data.pop()
+        status = data["status"]
 
-        if status['status'] == "error":
+        if status == "error":
             self.status = "error"
-            self.errcode = status['code']
-            self.errmessage = status['message']
-
-        if "partialcontent" in status:
-            self.partialcontent = status['partialcontent']
+            self.errmessage = data["errors"]
 
         # grap cookies before creating rquests
-        for key, val in data:
-            if key == "cookies":
-                for cookie in val:
-                    self.cookies.append(Cookie(cookie, parent.url))
+        for cookie in data["cookies"]:
+            self.cookies.append(Cookie(cookie, parent.url))
 
-        if "redirect" in status:
-            self.redirect = status['redirect']
-            r = Request(REQTYPE_REDIRECT,
-                        "GET",
-                        self.redirect,
+        if data["redirect"] != "":
+            pass
+            # TODO need handle redirect
+            # self.redirect = status['redirect']
+            # r = Request(REQTYPE_REDIRECT,
+            #             "GET",
+            #             self.redirect,
+            #             parent=parent,
+            #             set_cookie=self.cookies,
+            #             parent_db_id=parent.db_id)
+            # self.requests.append(r)
+
+        requests = data["requests"]
+        for request in requests:
+            request = json.loads(request)
+            trigger = safe_get(request, "trigger", None)
+            extra_headers = safe_get(request, "extra_headers", None)
+            r = Request(request['type'],
+                        request['method'],
+                        request['url'],
                         parent=parent,
                         set_cookie=self.cookies,
-                        parent_db_id=parent.db_id)
+                        data=request['data'],
+                        trigger=trigger,
+                        parent_db_id=parent.db_id,
+                        extra_headers=extra_headers)
             self.requests.append(r)
-
-        for key, val in data:
-            if key == "request":
-                trigger = val['trigger'] if 'trigger' in val else None
-                extra_headers = val[
-                    'extra_headers'] if 'extra_headers' in val else None
-                #try:
-                r = Request(val['type'],
-                            val['method'],
-                            val['url'],
-                            parent=parent,
-                            set_cookie=self.cookies,
-                            data=val['data'],
-                            trigger=trigger,
-                            parent_db_id=parent.db_id,
-                            extra_headers=extra_headers)
-                self.requests.append(r)
-                #except Exception as e:
-                #	pass
-            elif key == "html":
-                self.html = val
-            elif key == "page_hash":
-                page_hash = TextHash(val).hash
-                self.page_hash = page_hash if page_hash else 0
-            elif key == "user":
-                self.user_output.append(val)
+        #except Exception as e:
+        #	pass
+        # elif key == "html":
+        #     self.html = val
+        # elif key == "page_hash":
+        #     page_hash = TextHash(val).hash
+        #     self.page_hash = page_hash if page_hash else 0
+        # elif key == "user":
+        #     self.user_output.append(val)
 
     # @TODO handle cookies set by ajax (in probe too)
+
+
+def safe_get(obj, key, default):
+    return obj[key] if key in obj else default

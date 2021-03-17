@@ -9,8 +9,6 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
-from urllib.parse import urljoin
-from core.lib.cookie import Cookie
 from core.lib.utils import *
 from .shared import *
 import posixpath
@@ -60,10 +58,10 @@ def request_in_scope(request):
 
 def adjust_requests(requests):
     """
-	adjust an array of requsts according to current status/settings
-	 1. sets the out_of_scope property
-	 2. normalize url accoding to user settings
-	"""
+    adjust an array of requsts according to current status/settings
+    1. sets the out_of_scope property
+    2. normalize url accoding to user settings
+    """
 
     for request in requests:
         if request.type == REQTYPE_UNKNOWN or not request_in_scope(request):
@@ -121,9 +119,6 @@ class ProbeExecutor:
 
     def load_probe_json(self, jsn):
         jsn = jsn.strip()
-        if not jsn: jsn = "["
-        if jsn[-1] != "]":
-            jsn += '{"status":"ok", "partialcontent":true}]'
         try:
             return json.loads(jsn)
         except Exception:
@@ -187,41 +182,49 @@ class ProbeExecutor:
 
             # print cmd_to_str(self.probe_basecmd + params)
             # print ""
-            jsn = None
             self.cmd = CommandExecutor(self.probe_basecmd + params, True)
             out, err = self.cmd.execute(process_timeout + 10)
+            print(err)
 
-            if os.path.isfile(self.out_file):
-                with open(self.out_file, "r") as f:
-                    jsn = f.read()
-                os.unlink(self.out_file)
+            # print("out", out, self.probe_basecmd, "params", params)
 
-            if err or not jsn:
-                print(err)
-                self.errors.append(ERROR_PROBEKILLED)
-                if not jsn:
-                    break
-
-            # try to decode json also after an exception .. sometimes phantom crashes BUT returns a valid json ..
-            try:
-                if jsn and type(jsn) is not str:
-                    jsn = jsn[0]
-                probeArray = self.load_probe_json(jsn)
-            except Exception as e:
-                raise e
-
+            probeArray = self.load_probe_json(out)
             if probeArray:
                 probe = Probe(probeArray, self.request)
+            return probe
 
-                if probe.status == "ok":
-                    break
+            # jsn = None
+            # if os.path.isfile(self.out_file):
+            #     with open(self.out_file, "r") as f:
+            #         jsn = f.read()
+            #     os.unlink(self.out_file)
 
-                self.errors.append(probe.errcode)
+            # if err or not jsn:
+            #     print(err)
+            #     self.errors.append(ERROR_PROBEKILLED)
+            #     if not jsn:
+            #         break
 
-                if probe.errcode in (ERROR_CONTENTTYPE, ERROR_PROBE_TO):
-                    break
+            # # try to decode json also after an exception .. sometimes phantom crashes BUT returns a valid json ..
+            # try:
+            #     if jsn and type(jsn) is not str:
+            #         jsn = jsn[0]
+            #     probeArray = self.load_probe_json(jsn)
+            # except Exception as e:
+            #     raise e
 
-            time.sleep(0.5)
-            retries -= 1
+            # if probeArray:
+            #     probe = Probe(probeArray, self.request)
 
-        return probe
+            #     if probe.status == "ok":
+            #         break
+
+            #     self.errors.append(probe.errcode)
+
+            #     if probe.errcode in (ERROR_CONTENTTYPE, ERROR_PROBE_TO):
+            #         break
+
+            # time.sleep(0.5)
+            # retries -= 1
+
+        # return probe

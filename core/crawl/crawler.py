@@ -34,13 +34,12 @@ from core.lib.request import Request
 from core.lib.http_get import HttpGet
 
 from .crawler_thread import CrawlerThread
-#from core.lib.shingleprint import ShinglePrint
+# from core.lib.shingleprint import ShinglePrint
 from core.lib.texthash import TextHash
 from core.lib.request_pattern import RequestPattern
 from core.lib.utils import *
 from core.constants import *
 from .lib.utils import *
-from core.lib.progressbar import Progressbar
 
 
 class Crawler:
@@ -318,9 +317,7 @@ class Crawler:
                             ) and req not in Shared.requests and req not in req_to_crawl:
 
                                 if request_depth(req) > Shared.options[
-                                        'max_depth'] or request_post_depth(
-                                            req
-                                        ) > Shared.options['max_post_depth']:
+                                        'max_depth'] or request_post_depth(req) > Shared.options['max_post_depth']:
                                     if self.verbose:
                                         print(
                                             "  * cannot crawl: %s : crawl depth limit reached"
@@ -679,7 +676,7 @@ class Crawler:
         database.commit()
         database.close()
 
-        print("done")
+        print("Initializing . done")
         print(
             "Database %s initialized, crawl started with %d threads (^C to pause or change verbosity)"
             % (self.db_file, num_threads))
