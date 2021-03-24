@@ -1,5 +1,6 @@
 const net = require('net');
 const path_util = require("path");
+const http = require('http');
 
 class io {
     constructor(input, output) {
@@ -27,14 +28,15 @@ class socketIO extends io {
         super(null, null);
         this.connected = false;
 
+        this.port = port
         this.q = q;
         this.input = (msg) => {
             return this.q.in(msg);
         };
-        this.socket = this.listen(port);
+        this.socket = this.listen();
     }
 
-    listen(port) {
+    listen() {
         const server = net.createServer();
         server.on('connection', (sock) => {
             sock.on('error', (e) => {
@@ -62,8 +64,8 @@ class socketIO extends io {
                 sock.write(msg);
             };
         })
-        server.listen(port);
-        console.log("socketIO listening on ", port);
+        server.listen(this.port);
+        console.log("socketIO listening on ", this.port);
         return server;
     }
 }
@@ -119,4 +121,34 @@ class IPCIO extends io {
     }
 }
 
-module.exports = { socketIO, IPCIO }
+class httpServer extends io {
+    constructor(input, output) {
+        super(null, null);
+        this.connected = false;
+
+        this.port = port
+        this.q = q;
+        this.input = (msg) => {
+            return this.q.in(msg);
+        };
+        this.socket = this.listen(port);
+    }
+
+    listen() {
+    }
+}
+
+function runHttpServer(port = 3000) {
+    const server = http.createServer((req,res)=>{
+        console.log("url",req.url);
+        
+        res.writeHead(200);
+        res.write()
+    })
+    server.listen(port, "", () => {
+        console.log(`Server running at ${server.address()}`);
+    })
+    return server
+}
+
+module.exports = { socketIO, IPCIO, httpServer }

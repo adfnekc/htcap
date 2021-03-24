@@ -19,4 +19,5 @@ async function test() {
     }
     let crawler = await htcrawl.NewCrawler(options);
     await crawler.analyze("http://localhost:8080/");
+    process.exit(1);
 }
