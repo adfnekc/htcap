@@ -318,7 +318,7 @@ class Crawler {
 		try {
 			resp = await this._goto(url);
 		} catch (e) {
-			this._errors.push(["navigation", "navigation aborted3"]);
+			this._errors.push(["navigation", "navigation aborted3" + e]);
 			throw ("Navigation error" + e);
 		} finally {
 			this._allowNavigation = false;
@@ -371,7 +371,7 @@ class Crawler {
 			//TODO need close page quickily,and try avoid listen event twice
 			//console.log("===>on targetcreated:", target.url());
 			if (target.type() === 'page') {
-				
+
 				let targeturl = target.url();
 				const p = await target.page();
 				await Promise.all([
@@ -405,8 +405,11 @@ class Crawler {
 		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
 		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
 
+		if (!this.options.outputFunc)
+			console.log("options.outputFunc not set")
 		let outputFunc = this.options.outputFunc ? this.options.outputFunc : (msgs) => { console.log("@&=> msgs:", msgs) };
 		let out = new output(outputFunc);
+		out.print_url(targetUrl);
 		this.monitorEvent(out);
 
 		try {
@@ -414,8 +417,8 @@ class Crawler {
 		} catch (e) {
 			console.error("error in navigate ", targetUrl, e)
 			// clear previrous errors
-			this._errors = []
-			return e
+			this._errors.push(e)
+			return out.printStatus(that)
 		}
 
 
@@ -425,7 +428,7 @@ class Crawler {
 			//await crawler.browser().close();
 			// fs.unlink(pidfile, (err) => { });
 			// process.exit();
-			return;
+			return out.printStatus(that);
 		}
 
 		async function getPageText(page) {

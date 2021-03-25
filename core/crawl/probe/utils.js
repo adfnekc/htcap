@@ -231,7 +231,7 @@ exports.getOptionsFromCMD = () => {
 	let argv = this.parseArgs(process.argv, "hVaftUdICc:MSp:Tsn:x:A:r:mHX:PD:R:Oi:u:vy:E:lJ:L:zMg:", {});
 	let options = argv.opts
 
-	if (!options.threadnum || options.threadnum < 1){
+	if (!options.threadnum || options.threadnum < 1) {
 		console.error("options must specfied more than 1 thread,use '-n' ")
 		process.exit(1);
 	}
@@ -250,6 +250,9 @@ exports.getOptionsFromCMD = () => {
 };
 
 exports.formatURL = (targetUrl) => {
+	if (targetUrl === undefined || !targetUrl) {
+		return ""
+	}
 	targetUrl = targetUrl.trim();
 	if (targetUrl.length < 4 || targetUrl.substring(0, 4).toLowerCase() != "http") {
 		targetUrl = "http://" + targetUrl;

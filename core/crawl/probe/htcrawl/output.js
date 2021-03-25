@@ -2,6 +2,7 @@ module.exports = class output {
     constructor(outfunc) {
         this.outfunc = outfunc;
         this.outmsgs = {
+            url:"",
             status: "",
             errors: "",
             redirect: "",
@@ -20,6 +21,10 @@ module.exports = class output {
         }
     }
 
+    print_url = (targetUrl)=>{
+        this.outmsgs["url"] = targetUrl
+    }
+
     printCookies = async (crawler) => {
         this.print_log("cookie", await crawler.cookies());
     }
@@ -35,7 +40,7 @@ module.exports = class output {
         }
         this.outmsgs["status"] = status
         await this.printCookies(crawler);
-        this.outfunc(JSON.stringify(this.outmsgs));
+        this.outfunc(this.outmsgs);
     }
 
     printRequest = (req) => {

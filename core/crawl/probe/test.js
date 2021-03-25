@@ -2,8 +2,6 @@
 
 const utils = require('./utils');
 const htcrawl = require("./htcrawl");
-const taskQueue = require("./taskQueue");
-const io = require("./exchangeMsg").socketIO;
 
 test();
 

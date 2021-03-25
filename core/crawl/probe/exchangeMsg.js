@@ -1,11 +1,23 @@
 const net = require('net');
 const path_util = require("path");
 const http = require('http');
+const Koa = require('koa');
+const Router = require('@koa/router');
+const uniQueue = require("./uniQueue.js");
+const { formatURL, sleep } = require('./utils.js');
 
+/**
+ * Class is a abstrct io modle.
+ */
 class io {
     constructor(input, output) {
+        this.alive = true
         this.input = input;
         this.output = output;
+        this.q = new uniQueue();
+        this.input = (msg) => {
+            return this.q.enqueue(msg);
+        };
     }
 
     async onMsg(msg) {
@@ -13,26 +25,38 @@ class io {
     }
 
     async send(msg) {
-        msg = msg.toString();
         await this.output(msg);
+    }
+
+    /**
+     * @returns {string} dequeue a targeturl form q
+     * @async
+     */
+    async dequeue() {
+        return this.q.dequeue();
+    }
+
+    /**
+     * @return {boolean} wheath io is alive
+     */
+    is_alive() {
+        return this.alive
     }
 }
 
 /**
- * @param {int} port listen port
- * @param {taskqueue} q taskqueue
+ * Class representing a socketIO.
+ * @extends io
  */
 class socketIO extends io {
-
-    constructor(port, q) {
+    /**
+     * @param {number} port listen port
+     */
+    constructor(port) {
         super(null, null);
         this.connected = false;
 
         this.port = port
-        this.q = q;
-        this.input = (msg) => {
-            return this.q.in(msg);
-        };
         this.socket = this.listen();
     }
 
@@ -71,18 +95,17 @@ class socketIO extends io {
 }
 
 /**
- * @param {string} path Path the server should listen to
- * @param {taskqueue} q taskqueue
+ * Class representing a IPCIO.
+ * @extends io
  */
 class IPCIO extends io {
+    /**
+    * @param {string} path Path the IPCserver should listen to
+    */
     constructor(path, q) {
         super(null, null);
         this.connected = false;
 
-        this.q = q;
-        this.input = (msg) => {
-            return this.q.in(msg);
-        };
         this.socket = this.listen(path);
     }
 
@@ -121,34 +144,77 @@ class IPCIO extends io {
     }
 }
 
-class httpServer extends io {
-    constructor(input, output) {
+/**
+ * Class representing a httpIO.
+ * @extends io
+ */
+class httpIO extends io {
+    /**
+    * @param {number} port - listen port
+    */
+    constructor(port) {
         super(null, null);
-        this.connected = false;
-
         this.port = port
-        this.q = q;
-        this.input = (msg) => {
-            return this.q.in(msg);
-        };
-        this.socket = this.listen(port);
+        /**
+         * @type {Object.<string, string>} result_dic {url:result}
+         * @protected
+         */
+        this._result_dic = {}
+        this.output = (msg) => {
+            this._result_dic[msg["url"]] = msg
+        }
+        this.server = this.listen();
+    }
+
+    router() {
+        const r = new Router();
+
+        r.get('/url/:urlencode_url', async (ctx, next) => {
+            let targeturl = formatURL(decodeURIComponent(ctx.params.urlencode_url))
+            if (targeturl == "") {
+                ctx.body = "url is not vaild"
+                ctx.status = 418
+                return
+            }
+            this.input(targeturl);
+            ctx.status = 200;
+            ctx.body = await (async () => {
+                let res = "";
+                let flag = true;
+                setTimeout(() => {
+                    flag = false;
+                }, 6000)
+                while (flag) {
+                    if (targeturl in this._result_dic) {
+                        res = this._result_dic[targeturl];
+                        break;
+                    }
+                    await sleep(20);
+                }
+                return res;
+            })();
+        });
+
+        r.get("/_result_dic", async (ctx, next) => {
+            ctx.body = this._result_dic;
+            ctx.status = 200;
+        })
+
+        return r
     }
 
     listen() {
+        const app = new Koa();
+        const r = this.router();
+        app.use(r.routes())
+            .use(r.allowedMethods());
+
+        const server = http.createServer(app.callback())
+            .listen(this.port, "", () => {
+                console.log(`Server running at :${server.address().port}`);
+            })
+        return server
     }
 }
 
-function runHttpServer(port = 3000) {
-    const server = http.createServer((req,res)=>{
-        console.log("url",req.url);
-        
-        res.writeHead(200);
-        res.write()
-    })
-    server.listen(port, "", () => {
-        console.log(`Server running at ${server.address()}`);
-    })
-    return server
-}
-
-module.exports = { socketIO, IPCIO, httpServer }
+module.exports = { socketIO, IPCIO, httpIO }
