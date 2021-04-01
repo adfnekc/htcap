@@ -124,12 +124,10 @@ class Crawler:
             "  -U USERAGENT     set user agent\n"
             "  -t TIMEOUT       maximum seconds spent to analyze a page (default "
             + str(self.defaults['process_timeout']) + ")\n"
-            "  -S               skip initial checks\n"
             "  -G               group query_string parameters with the same name ('[]' ending excluded)\n"
             "  -N               don't normalize URL path (keep ../../)\n"
             "  -R               maximum number of redirects to follow (default "
             + str(self.defaults['max_redirects']) + ")\n"
-            "  -I               ignore robots.txt\n"
             "  -O               dont't override timeout functions (setTimeout, setInterval)\n"
             "  -e               disable hEuristic page deduplication\n"
             "  -l               do not run chrome in headless mode\n"
@@ -218,7 +216,7 @@ class Crawler:
             directive = ""
             url = None
             try:
-                directive, url = re.sub("\#.*", "", line).split(":", 1)
+                directive, url = re.sub("\\#.*", "", line).split(":", 1)
             except:
                 continue  # ignore errors
 
@@ -255,10 +253,12 @@ class Crawler:
                     running_threads = [
                         t for t in threads if t.status == THSTAT_RUNNING
                     ]
+                    for t in threads:
+                        print(t.status)
                     if len(running_threads) == 0:
                         if self.display_progress or self.verbose:
-                            print("")
-                        break
+                            print("no running_threads")
+                        # break
 
                 if len(req_to_crawl) > 0:
                     Shared.th_condition.acquire()
@@ -317,7 +317,9 @@ class Crawler:
                             ) and req not in Shared.requests and req not in req_to_crawl:
 
                                 if request_depth(req) > Shared.options[
-                                        'max_depth'] or request_post_depth(req) > Shared.options['max_post_depth']:
+                                        'max_depth'] or request_post_depth(
+                                            req
+                                        ) > Shared.options['max_post_depth']:
                                     if self.verbose:
                                         print(
                                             "  * cannot crawl: %s : crawl depth limit reached"
@@ -350,8 +352,8 @@ class Crawler:
                 try:
                     Shared.main_condition.release()
                     Shared.th_condition.release()
-                except:
-                    pass
+                except Exception as e:
+                    print("main_condition.release.. " + e)
                 self.pause_threads(threads, True)
                 if not self.get_runtime_command():
                     print("Exiting . . .")
@@ -390,25 +392,6 @@ class Crawler:
 
         return True
 
-    def init_crawl(self, start_req, check_starturl, get_robots_txt):
-        start_requests = [start_req]
-        try:
-            if check_starturl:
-                self.check_startrequest(start_req)
-                stdoutw(". ")
-
-            if get_robots_txt:
-                rrequests = self.get_requests_from_robots(start_req)
-                stdoutw(". ")
-                for req in rrequests:
-                    if request_is_crawlable(req) and not req in start_requests:
-                        start_requests.append(req)
-        except KeyboardInterrupt:
-            print("\nAborted")
-            sys.exit(1)
-
-        return start_requests
-
     def main(self, argv):
         Shared.options = self.defaults
         Shared.th_condition = threading.Condition()
@@ -431,9 +414,7 @@ class Crawler:
         out_file = ""
         out_file_overwrite = self.defaults['out_file_overwrite']
         cookie_string = None
-        initial_checks = True
         http_auth = None
-        get_robots_txt = True
         save_html = False
 
         try:
@@ -458,7 +439,7 @@ class Crawler:
                     with open(v) as cf:
                         cookie_string = cf.read()
                 except Exception as e:
-                    print("error reading cookie file")
+                    print("error reading cookie file" + e)
                     sys.exit(1)
             elif o == '-r':
                 start_referer = v
@@ -511,10 +492,6 @@ class Crawler:
                     print("* ERROR: wrong mode set '%s'" % v)
                     sys.exit(1)
                 Shared.options['mode'] = v
-            elif o == "-S":
-                initial_checks = False
-            elif o == "-I":
-                get_robots_txt = False
             elif o == "-H":
                 save_html = True
             elif o == "-D":
@@ -546,10 +523,10 @@ class Crawler:
                         Shared.options['login_sequence'][
                             "__file__"] = os.path.abspath(v)
                 except ValueError as e:
-                    print("* ERROR: decoding login sequence")
+                    print("* ERROR: decoding login sequence" + e)
                     sys.exit(1)
                 except Exception as e:
-                    print("* ERROR: login sequence file not found")
+                    print("* ERROR: login sequence file not found" + e)
                     sys.exit(1)
             elif o == "-g":
                 if not Shared.options['local_storage']:
@@ -580,7 +557,7 @@ class Crawler:
             try:
                 start_cookies = parse_cookie_string(cookie_string)
             except Exception as e:
-                print("error decoding cookie string")
+                print("error decoding cookie string" + e)
                 sys.exit(1)
 
         if Shared.options['mode'] != CRAWLMODE_AGGRESSIVE:
@@ -646,10 +623,7 @@ class Crawler:
                 "* WARNING: SSLContext is not supported with this version of python, consider to upgrade to >= 2.7.9 in case of SSL errors"
             )
 
-        stdoutw("Initializing . ")
-
-        start_requests = self.init_crawl(start_req, initial_checks,
-                                         get_robots_txt)
+        start_requests = [start_req]
 
         database = None
         self.db_file = self.generate_filename(out_file, out_file_overwrite)
@@ -676,7 +650,6 @@ class Crawler:
         database.commit()
         database.close()
 
-        print("Initializing . done")
         print(
             "Database %s initialized, crawl started with %d threads (^C to pause or change verbosity)"
             % (self.db_file, num_threads))

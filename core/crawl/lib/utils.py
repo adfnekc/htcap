@@ -13,9 +13,11 @@ from core.lib.utils import *
 from .shared import *
 import posixpath
 import json
+import requests as req
 import re
 import tempfile
 import uuid
+import urllib
 from core.crawl.lib.probe import Probe
 
 
@@ -32,7 +34,7 @@ def request_in_scope(request):
     # check for scopes
     if scope == CRAWLSCOPE_DOMAIN:
         for pattern in Shared.allowed_domains:
-            if purl.hostname != None and re.match(pattern, purl.hostname):
+            if purl.hostname is None and re.match(pattern, purl.hostname):
                 in_scope = True
                 break
 
@@ -74,7 +76,7 @@ def adjust_requests(requests):
 
 
 def request_depth(request):
-    if request.parent == None:
+    if request.parent is None:
         return 1
 
     return 1 + request_depth(request.parent)
@@ -84,7 +86,7 @@ def request_post_depth(request):
     if request.method != "POST":
         return 0
 
-    if request.parent == None or request.parent.method != "POST":
+    if request.parent is None or request.parent.method != "POST":
         return 1
 
     return 1 + request_post_depth(request.parent)
@@ -103,9 +105,12 @@ def request_is_crawlable(request):
 
 
 class ProbeExecutor:
+    """ parms request:Request
+    parms probe_basecmd
+    """
     def __init__(self,
                  request,
-                 probe_basecmd,
+                 probe_basecmd: str,
                  cookie_file=None,
                  out_file=None,
                  login_sequence=None):
@@ -129,11 +134,10 @@ class ProbeExecutor:
         if self.cmd:
             self.cmd.terminate()
 
-    def execute(self, process_timeout=300, retries=1):
+    def execute(self, process_timeout=300, retries=1) -> Probe:
         url = self.request.url
-        jsn = None
         probe = None
-        #retries = self.process_retries
+        # retries = self.process_retries
         params = []
         cookies = []
 
@@ -178,15 +182,12 @@ class ProbeExecutor:
         params.append(url)
 
         while retries:
-            #while False:
-
-            # print cmd_to_str(self.probe_basecmd + params)
-            # print ""
-            self.cmd = CommandExecutor(self.probe_basecmd + params, True)
-            out, err = self.cmd.execute(process_timeout + 10)
-            print(err)
-
+            # self.cmd = CommandExecutor(self.probe_basecmd + params, True)
+            # out, err = self.cmd.execute(process_timeout + 10)
+            # print(err)
             # print("out", out, self.probe_basecmd, "params", params)
+
+            out = probe_http(params[-1])
 
             probeArray = self.load_probe_json(out)
             if probeArray:
@@ -228,3 +229,17 @@ class ProbeExecutor:
             # retries -= 1
 
         # return probe
+
+
+def probe_http(url: str) -> str:
+    return "{\"status\":\"ok\",\"errors\":\"\",\"redirect\":\"\",\"cookies\":[{\"name\":\"Elgg\",\"value\":\"d69abf1a24a76431dffbd8992f433a5e\",\"domain\":\"localhost\",\"path\":\"/\",\"expires\":-1,\"httponly\":false,\"secure\":false}],\"requests\":[\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/login\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/forgotpassword\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/activity\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/blog/all\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/bookmarks\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/file\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/groups/all\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/members\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/pages\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/thewire/all\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://elgg.org/\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"form\\\",\\\"method\\\":\\\"POST\\\",\\\"url\\\":\\\"http://localhost:8080/action/login\\\",\\\"data\\\":\\\"__elgg_token=Fi4JBaJeHDRdt--C8bVtHg&__elgg_ts=1615954528&username=XdXcgcbc&password=Xib%25Io416%25%2C&returntoreferer=true&persistent=true\\\"}\",\"{\\\"type\\\":\\\"form\\\",\\\"method\\\":\\\"GET\\\",\\\"url\\\":\\\"http://localhost:8080/search\\\",\\\"data\\\":\\\"q=XdXcgcbc&search_type=all\\\"}\",\"{\\\"type\\\":\\\"form\\\",\\\"method\\\":\\\"POST\\\",\\\"url\\\":\\\"http://localhost:8080/action/login\\\",\\\"data\\\":\\\"__elgg_token=Fi4JBaJeHDRdt--C8bVtHg&__elgg_ts=1615954528&username=XdXcgcbc&password=Xib%25Io416%25%2C&persistent=true\\\"}\",\"{\\\"url\\\":\\\"http://localhost:8080/\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"type\\\":\\\"xhr\\\",\\\"method\\\":\\\"POST\\\",\\\"url\\\":\\\"http://localhost:8080/action/login?\\\",\\\"data\\\":{},\\\"trigger\\\":{\\\"element\\\":\\\"#login-dropdown-box > div > form > fieldset > div:nth-of-type(3) > div > div > button > span\\\",\\\"event\\\":\\\"click\\\"},\\\"extra_headers\\\":{\\\"Accept\\\":\\\"application/json, text/javascript, */*; q=0.01\\\",\\\"X-Elgg-Ajax-API\\\":\\\"2\\\",\\\"X-Requested-With\\\":\\\"XMLHttpRequest\\\"}}\",\"{\\\"url\\\":\\\"http://localhost:8080/forgotpassword\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/search?q=XdXcgcbc&search_type=all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/activity\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/blog/all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/bookmarks\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/file\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/groups/all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/members\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/pages\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/thewire/all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://elgg.org/\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\"]}"
+    host = Shared.node_host
+    url = req.utils.quote(url, safe='~()*!.\'')
+    url = "http://" + host + "/url/" + url
+    print("get ->", url)
+    res = req.get(url, timeout=180)
+    if res.status_code == 200:
+        return res.text
+    else:
+        print(res.content)
+        return ""

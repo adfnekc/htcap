@@ -10,33 +10,22 @@ version.
 """
 
 import time
-import re
-import json
-import urllib.request, urllib.parse, urllib.error
-import http.cookiejar
 import threading
-import base64
 
 import tempfile
 import os
 import uuid
 
-from urllib.parse import urlparse, urlsplit, urljoin, parse_qsl
-
 from core.lib.exception import *
 from core.crawl.lib.shared import *
 
-from core.crawl.lib.probe import Probe
-
 from core.lib.http_get import HttpGet
-from core.lib.cookie import Cookie
-from core.lib.shell import CommandExecutor
-from core.lib.request import Request
 
 from core.lib.utils import *
 from core.constants import *
 
 from .lib.utils import *
+from .lib.utils import ProbeExecutor
 from .lib.crawl_result import *
 
 
@@ -55,7 +44,7 @@ class CrawlerThread(threading.Thread):
             tempfile.gettempdir(), os.sep, self.thread_uuid)
         self.out_file = "%s%shtcap_output-%s.json" % (tempfile.gettempdir(),
                                                       os.sep, self.thread_uuid)
-        self.probe_executor = None
+        self.probe_executor = ProbeExecutor(None, None)
 
     def run(self):
         self.crawl()
@@ -64,15 +53,15 @@ class CrawlerThread(threading.Thread):
         request = None
         Shared.th_condition.acquire()
         while True:
-            if self.exit == True:
+            if self.exit:
                 Shared.th_condition.notifyAll()
                 Shared.th_condition.release()
                 raise ThreadExitRequestException("exit request received")
 
             if Shared.requests_index >= len(Shared.requests):
                 self.status = THSTAT_WAITING
-                Shared.th_condition.wait(
-                )  # The wait method releases the lock, blocks the current thread until another thread calls notify
+                # The wait method releases the lock, blocks the current thread until another thread calls notify
+                Shared.th_condition.wait()
                 continue
 
             request = Shared.requests[Shared.requests_index]
@@ -113,12 +102,7 @@ class CrawlerThread(threading.Thread):
     def crawl(self):
 
         while True:
-            url = None
-            cookies = []
             requests = []
-
-            requests_to_crawl = []
-            redirects = 0
             errors = []
 
             try:
@@ -131,16 +115,10 @@ class CrawlerThread(threading.Thread):
                 print("-->" + str(e))
                 continue
 
-            url = request.url
-
-            purl = urlsplit(url)
-
-            probe = None
-
             probe = self.send_probe(request, errors)
 
             if probe:
-                if probe.status == "ok" or probe.errcode == ERROR_PROBE_TO:
+                if probe.status == "ok":
 
                     requests = probe.requests
 
@@ -153,7 +131,7 @@ class CrawlerThread(threading.Thread):
             else:
                 errors.append(ERROR_PROBEFAILURE)
                 # get urls with python to continue crawling
-                if Shared.options['use_urllib_onerror'] == False:
+                if not Shared.options['use_urllib_onerror']:
                     continue
                 try:
                     hr = HttpGet(request, Shared.options['process_timeout'],
@@ -166,7 +144,7 @@ class CrawlerThread(threading.Thread):
                     errors.append(str(e))
 
             # set out_of_scope, apply user-supplied filters to urls (ie group_qs)
-            adjust_requests(requests)
+            requests = adjust_requests(requests)
 
             Shared.main_condition.acquire()
             res = CrawlResult(request, requests, errors,
