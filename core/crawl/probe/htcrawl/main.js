@@ -583,7 +583,6 @@ class Crawler {
 			console.log(err);
 			await end();
 		}
-		console.log("ending...");
 	}
 
 	dispatchProbeEvent = async (name, params) => {
