@@ -647,7 +647,7 @@ class Crawler {
 		});
 
 		this.on("navigation", function (e, crawler) {
-			console.trace("navigation", e.params.request, (new Date).getTime());
+			// console.trace("navigation", e.params.request, (new Date).getTime());
 			let type = e.params.request.type;
 			e.params.request.type = type ? type : "link";
 			out.printRequest(e.params.request);

@@ -6,6 +6,8 @@ const Router = require('@koa/router');
 const uniQueue = require("./uniQueue.js");
 const { formatURL, sleep } = require('./utils.js');
 
+
+const second = 1000
 /**
  * Class is a abstrct io modle.
  */
@@ -177,14 +179,13 @@ class httpIO extends io {
                 return
             }
             this.input(targeturl);
-            ctx.status = 200;
             ctx.body = await (async () => {
                 let res = "";
                 ctx.status = 421
                 let flag = true;
                 setTimeout(() => {
                     flag = false;
-                }, 18000)
+                }, 180 * second)
                 while (flag) {
                     if (targeturl in this._result_dic) {
                         res = this._result_dic[targeturl];
@@ -200,6 +201,11 @@ class httpIO extends io {
 
         r.get("/_result_dic", async (ctx, next) => {
             ctx.body = this._result_dic;
+            ctx.status = 200;
+        })
+
+        r.get("/_clean_res_cache", async (ctx, next) => {
+            this._result_dic = {};
             ctx.status = 200;
         })
 

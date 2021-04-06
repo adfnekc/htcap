@@ -353,7 +353,7 @@ class Crawler:
                     Shared.main_condition.release()
                     Shared.th_condition.release()
                 except Exception as e:
-                    print("main_condition.release.. " + e)
+                    print("main_condition.release.. " + str(e))
                 self.pause_threads(threads, True)
                 if not self.get_runtime_command():
                     print("Exiting . . .")

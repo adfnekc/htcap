@@ -62,8 +62,6 @@ class CrawlerThread(threading.Thread):
                 self.status = THSTAT_WAITING
                 # The wait method releases the lock, blocks the current thread until another thread calls notify
                 Shared.th_condition.wait()
-                continue
-
             request = Shared.requests[Shared.requests_index]
             Shared.requests_index += 1
 
