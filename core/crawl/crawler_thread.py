@@ -100,6 +100,9 @@ class CrawlerThread(threading.Thread):
     def crawl(self):
 
         while True:
+            if self.exit:
+                return
+
             requests = []
             errors = []
 
@@ -108,6 +111,7 @@ class CrawlerThread(threading.Thread):
             except ThreadExitRequestException:
                 if os.path.exists(self.cookie_file):
                     os.remove(self.cookie_file)
+                print("exit---->")
                 return
             except Exception as e:
                 print("-->" + str(e))

@@ -253,12 +253,10 @@ class Crawler:
                     running_threads = [
                         t for t in threads if t.status == THSTAT_RUNNING
                     ]
-                    for t in threads:
-                        print(t.status)
                     if len(running_threads) == 0:
                         if self.display_progress or self.verbose:
                             print("no running_threads")
-                        # break
+                        break
 
                 if len(req_to_crawl) > 0:
                     Shared.th_condition.acquire()

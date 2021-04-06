@@ -21,7 +21,7 @@ import urllib
 from core.crawl.lib.probe import Probe
 
 
-def request_in_scope(request):
+def request_in_scope(request) -> bool:
     url = request.url
     purl = urlsplit(url)
     spurl = urlsplit(Shared.starturl)
@@ -34,7 +34,7 @@ def request_in_scope(request):
     # check for scopes
     if scope == CRAWLSCOPE_DOMAIN:
         for pattern in Shared.allowed_domains:
-            if purl.hostname is None and re.match(pattern, purl.hostname):
+            if purl.hostname and re.match(pattern, purl.hostname):
                 in_scope = True
                 break
 
@@ -92,11 +92,11 @@ def request_post_depth(request):
     return 1 + request_post_depth(request.parent)
 
 
-def request_is_crawlable(request):
+def request_is_crawlable(request) -> bool:
     if request.out_of_scope:
         return False
 
-    types = [REQTYPE_LINK, REQTYPE_REDIRECT]
+    types = [REQTYPE_LINK, REQTYPE_REDIRECT, REQTYPE_NAV]
     if Shared.options['mode'] == CRAWLMODE_AGGRESSIVE and Shared.options[
             'crawl_forms']:
         types.append(REQTYPE_FORM)
