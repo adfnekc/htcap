@@ -15,6 +15,7 @@ import time
 import getopt
 import json
 import re
+import logging
 from urllib.parse import urlsplit
 import urllib.request
 import urllib.error
@@ -274,7 +275,7 @@ class Crawler:
                         crawled += 1
                         pending -= 1
                         if self.verbose:
-                            print("crawl result for: %s " % result.request)
+                            logging.debug("crawl result for: %s " % result.request)
                             if len(result.request.user_output) > 0:
                                 print("  user: %s" %
                                       json.dumps(result.request.user_output))
@@ -308,7 +309,7 @@ class Crawler:
                             database.save_request(req)
 
                             if self.verbose and req not in Shared.requests and req not in req_to_crawl:
-                                print("  new request found %s" % req)
+                                logging.debug("  new request found %s" % req)
 
                             if request_is_crawlable(
                                     req
@@ -653,7 +654,7 @@ class Crawler:
             % (self.db_file, num_threads))
 
         for n in range(0, num_threads):
-            thread = CrawlerThread()
+            thread = CrawlerThread(n)
             threads.append(thread)
             thread.start()
 

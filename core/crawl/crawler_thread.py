@@ -29,9 +29,15 @@ from .lib.utils import ProbeExecutor
 from .lib.crawl_result import *
 
 
+def save_log(text: str):
+    with open("./thearding.log", "a+") as f:
+        f.write(text + "\r\n")
+
+
 class CrawlerThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, name):
         threading.Thread.__init__(self)
+        self._name = name
         self.thread_uuid = uuid.uuid4()
         self.process_retries = 2
         self.process_retries_interval = 0.5
@@ -49,28 +55,43 @@ class CrawlerThread(threading.Thread):
     def run(self):
         self.crawl()
 
+    def __acquire(self):
+        save_log("Thread %s __acquire" % self._name)
+        Shared.th_condition.acquire()
+
+    def __notifyAll(self):
+        save_log("Thread %s __notifyAll" % self._name)
+        Shared.th_condition.notifyAll()
+
+    def __release(self):
+        save_log("Thread %s __release" % self._name)
+        Shared.th_condition.release()
+
+    def __wait(self):
+        save_log("Thread %s __wait" % self._name)
+        Shared.th_condition.wait(1 / 10)
+
     def wait_request(self):
         request = None
-        Shared.th_condition.acquire()
+        self.__acquire()
         while True:
             if self.exit:
-                Shared.th_condition.notifyAll()
-                Shared.th_condition.release()
+                self.__notifyAll()
+                self.__release()
                 raise ThreadExitRequestException("exit request received")
 
             if Shared.requests_index >= len(Shared.requests):
                 self.status = THSTAT_WAITING
                 # The wait method releases the lock, blocks the current thread until another thread calls notify
-                Shared.th_condition.wait()
+                self.__wait()
+                continue
+
             request = Shared.requests[Shared.requests_index]
             Shared.requests_index += 1
-
             break
 
-        Shared.th_condition.release()
-
+        self.__release()
         self.status = THSTAT_RUNNING
-
         return request
 
     def send_probe(self, request, errors):
@@ -111,10 +132,9 @@ class CrawlerThread(threading.Thread):
             except ThreadExitRequestException:
                 if os.path.exists(self.cookie_file):
                     os.remove(self.cookie_file)
-                print("exit---->")
                 return
             except Exception as e:
-                print("-->" + str(e))
+                print("crawl_thread err -->" + e)
                 continue
 
             probe = self.send_probe(request, errors)

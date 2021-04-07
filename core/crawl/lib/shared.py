@@ -32,4 +32,4 @@ class Shared:
     options = {}
     probe_cmd = ""
 
-    node_host = "192.168.31.8:11218"
+    node_host = "127.0.0.1:11218"
