@@ -3,9 +3,9 @@
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
 
-This program is free software; you can redistribute it and/or modify it under 
-the terms of the GNU General Public License as published by the Free Software 
-Foundation; either version 2 of the License, or (at your option) any later 
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
@@ -137,7 +137,7 @@ class Request(object):
                     out_of_scope=self.out_of_scope)
 
     def cookies_from_json(self, cookies):
-        #return [Cookie(c, self.parent.url) for c in json.loads(cookies)]
+        # return [Cookie(c, self.parent.url) for c in json.loads(cookies)]
 
         # create Cookie without "setter" because cookies loaded from db are always valid (no domain restrictions)
         # see Cookie.py
@@ -161,8 +161,8 @@ class Request(object):
 
     def get_full_url(self):
         """
-		returns the url with http credentials
-		"""
+        returns the url with http credentials
+        """
         if not self.http_auth:
             return self.url
 
@@ -175,8 +175,8 @@ class Request(object):
     # UNUSED
     def tokenize_request(self, request):
         """
-		returns an array of url components
-		"""
+        returns an array of url components
+        """
         purl = urlsplit(request.url)
 
         tokens = [purl.scheme, purl.netloc]
@@ -194,14 +194,16 @@ class Request(object):
             for qt in qtokens:
                 tokens.extend(qt.split("=", 1))
 
-        #print tokens
+        # print tokens
         return tokens
 
     # UNUSED
     def compare_html(self, other):
-        if not other: return False
+        if not other:
+            return False
 
-        if not self.html and not other.html: return True
+        if not self.html and not other.html:
+            return True
 
         if self.html and other.html:
             return self._html_hash.distance(other._html_hash) <= 2
@@ -211,22 +213,27 @@ class Request(object):
     # UNUSED
     def is_similar(self, other):
         # is equal .. so not similar
-        if self == other: return False
+        if self == other:
+            return False
 
         ot = self.tokenize_request(other)
         st = self.tokenize_request(self)
 
-        if len(ot) != len(st): return False
+        if len(ot) != len(st):
+            return False
         diff = 0
         for i in range(0, len(st)):
-            if st[i] != ot[i]: diff += 1
+            if st[i] != ot[i]:
+                diff += 1
 
-        if diff > 1: return False
+        if diff > 1:
+            return False
 
         return True
 
     def __eq__(self, other):
-        if other == None: return False
+        if other is None:
+            return False
         data = self.data
         odata = other.data
         if self.method == "POST":
@@ -237,7 +244,7 @@ class Request(object):
                 data) == (other.method, other.url, other.http_auth, odata)
 
     def __repr__(self):
-        print("DEBUG" + self.__str__())
+        print("Request:: " + self.__str__())
 
     def __str__(self):
         return "%s %s %s %s" % (self.type, self.method, self.get_full_url(),

@@ -17,7 +17,6 @@ import requests as req
 import re
 import tempfile
 import uuid
-import urllib
 from core.crawl.lib.probe import Probe
 
 
@@ -122,7 +121,7 @@ class ProbeExecutor:
         self.errors = []
         self.cmd = None
 
-    def load_probe_json(self, jsn):
+    def load_probe_json(self, jsn: str):
         jsn = jsn.strip()
         try:
             return json.loads(jsn)
