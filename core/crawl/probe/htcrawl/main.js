@@ -479,12 +479,11 @@ class Crawler {
 
 		fs.writeFileSync(pidfile, this.browser().process().pid.toString());
 
-		//set analyze single page timeout
-		//TODO needed
-		// execTO = setTimeout(function () {
-		// 	crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
-		// 	end();
-		// }, options.maxExecTime);
+		// set analyze single page timeout
+		execTO = setTimeout(function () {
+			crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
+			end();
+		}, options.maxExecTime);
 
 		if (this.options.localStorage) {
 			page.evaluateOnNewDocument((storage) => {

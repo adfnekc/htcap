@@ -30,7 +30,7 @@ from .lib.crawl_result import *
 
 
 def save_log(text: str):
-    with open("./thearding.log", "a+") as f:
+    with open("./log/thearding.log", "a+") as f:
         f.write(text + "\r\n")
 
 

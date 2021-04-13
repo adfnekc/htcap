@@ -16,8 +16,8 @@ const process = require('process');
 
 let outfile = null;
 
-exports.usage = () => {
-	var usage = "Usage: analyze.js [options] <url>\n" +
+let usage = () => {
+	let usageinfo = "Usage: analyze.js [options] <url>\n" +
 		"  -V              verbose\n" +
 		"  -a              don't check ajax\n" +
 		"  -f              don't fill values\n" +
@@ -49,7 +49,7 @@ exports.usage = () => {
 		"  -z              do not crawl\n" +
 		"  -M              don't simulate real mouse/keyboard events\n" +
 		"  -J <path>       print json to file instead of stdout";
-	console.log(usage);
+	console.log(usageinfo);
 };
 
 function parseArgsToOptions(args, defaults) {
@@ -59,11 +59,10 @@ function parseArgsToOptions(args, defaults) {
 	}
 	for (var a = 0; a < args.opts.length; a++) {
 		switch (args.opts[a][0]) {
-			// case "h":
-			// 	//showHelp = true;
-			// 	usage();
-			// 	phantom.exit(1);
-			// 	break;
+			case "h":
+				//showHelp = true;
+				usage();
+				break;
 			case "V":
 				options.verbose = true;
 				break;

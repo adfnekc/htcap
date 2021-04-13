@@ -28,6 +28,7 @@ class Shared:
     start_cookies = []
     allowed_domains = set()
     excluded_urls = set()
+    process_timeout = 180
 
     options = {}
     probe_cmd = ""

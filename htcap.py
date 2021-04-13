@@ -56,7 +56,7 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s :%(message)s',
                         level=logging.DEBUG,
                         datefmt='%m/%d/%Y %I:%M:%S %p',
-                        filename='app.log')
+                        filename='./log/app.log')
 
     node_dir = os.path.join(getrealdir(__file__), 'core', 'nodejs')
     env_sep = ':' if sys.platform != "win32" else ';'

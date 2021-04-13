@@ -16,6 +16,8 @@ import getopt
 import json
 import re
 import logging
+import uuid
+import subprocess
 from urllib.parse import urlsplit
 import urllib.request
 import urllib.error
@@ -34,6 +36,7 @@ from .lib.crawl_result import *
 from core.lib.request import Request
 from core.lib.http_get import HttpGet
 
+from typing import List
 from .crawler_thread import CrawlerThread
 # from core.lib.shingleprint import ShinglePrint
 from core.lib.texthash import TextHash
@@ -49,7 +52,7 @@ class Crawler:
         self.base_dir = getrealdir(__file__) + os.sep
 
         self.crawl_start_time = int(time.time())
-        self.crawl_end_time = None
+        self.crawl_end_time = 0
         self.page_hashes = []
         self.request_patterns = []
         self.db_file = ""
@@ -275,7 +278,8 @@ class Crawler:
                         crawled += 1
                         pending -= 1
                         if self.verbose:
-                            logging.debug("crawl result for: %s " % result.request)
+                            logging.debug("crawl result for: %s " %
+                                          result.request)
                             if len(result.request.user_output) > 0:
                                 print("  user: %s" %
                                       json.dumps(result.request.user_output))
@@ -420,7 +424,7 @@ class Crawler:
             opts, args = getopt.getopt(
                 argv, 'hc:t:jn:x:A:p:d:BGR:U:wD:s:m:C:qr:SIHFP:OvelE:L:Mg:')
         except getopt.GetoptError as err:
-            print(str(err))
+            print("GetoptError", str(err))
             sys.exit(1)
 
         if len(args) < 2:
@@ -478,14 +482,14 @@ class Crawler:
             elif o == "-U":
                 Shared.options['useragent'] = v
             elif o == "-s":
-                if not v in (CRAWLSCOPE_DOMAIN, CRAWLSCOPE_DIRECTORY,
+                if v not in (CRAWLSCOPE_DOMAIN, CRAWLSCOPE_DIRECTORY,
                              CRAWLSCOPE_URL):
                     self.usage()
                     print("* ERROR: wrong scope set '%s'" % v)
                     sys.exit(1)
                 Shared.options['scope'] = v
             elif o == "-m":
-                if not v in (CRAWLMODE_PASSIVE, CRAWLMODE_ACTIVE,
+                if v not in (CRAWLMODE_PASSIVE, CRAWLMODE_ACTIVE,
                              CRAWLMODE_AGGRESSIVE):
                     self.usage()
                     print("* ERROR: wrong mode set '%s'" % v)
@@ -573,6 +577,7 @@ class Crawler:
             ])
         if not Shared.options['headless_chrome']:
             probe_options.append("-l")
+
         probe_cmd.append(os.path.join(self.base_dir, 'probe', 'analyze.js'))
 
         if len(Shared.excluded_urls) > 0:
@@ -583,6 +588,7 @@ class Crawler:
 
         probe_options.extend(("-x", str(Shared.options['process_timeout'])))
         probe_options.extend(("-A", Shared.options['useragent']))
+        probe_options.extend(("-n", str(num_threads)))
 
         if not Shared.options['override_timeout_functions']:
             probe_options.append("-O")
@@ -649,6 +655,9 @@ class Crawler:
         database.commit()
         database.close()
 
+        node_process, cookie_file = start_node(Shared.probe_cmd,
+                                               cookieList=Shared.start_cookies)
+
         print(
             "Database %s initialized, crawl started with %d threads (^C to pause or change verbosity)"
             % (self.db_file, num_threads))
@@ -661,6 +670,7 @@ class Crawler:
         self.main_loop(threads, start_requests, database)
 
         self.kill_threads(threads)
+        node_process.terminate()
 
         self.crawl_end_time = int(time.time())
 
@@ -669,3 +679,33 @@ class Crawler:
                (self.crawl_end_time - self.crawl_start_time) // 60))
 
         database.save_crawl_info(end_date=self.crawl_end_time)
+
+
+def start_node(cmd: List[str],
+               cookieList: List[Cookie] = None) -> (subprocess.Popen, str):
+    cookieList = [c for c in cookieList if c.is_valid_for_url(Shared.starturl)]
+    cookie_file = "/tmp/htcap_cookie_%s.json" % (uuid.uuid4())
+
+    cookies = []
+    if len(cookieList) > 0:
+        for c in cookieList:
+            cookie = c.get_dict()
+            if not cookie['domain']:
+                purl = urlsplit(Shared.starturl)
+                cookie['domain'] = purl.netloc.split(":")[0]
+            cookies.append(cookie)
+
+        logging.debug("cookie:%s write to file <%s>" % (cookies, cookie_file))
+        with open(cookie_file, 'w') as fil:
+            fil.write(json.dumps(cookies))
+
+    cmd.extend(["-c", cookie_file])
+    with open("./log/node.log", "w+") as f:
+        node_process = subprocess.Popen(cmd,
+                                        stdout=f,
+                                        stderr=f,
+                                        text=True,
+                                        cwd=os.path.dirname(cmd[1]))
+    logging.debug("cmd:%s,cwd:%s" % (cmd, os.path.dirname(cmd[1])))
+    time.sleep(5)
+    return node_process, cookie_file
