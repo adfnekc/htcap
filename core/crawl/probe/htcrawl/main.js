@@ -66,7 +66,7 @@ exports.NewCrawler = async function (options) {
 	try {
 		// setRequestInterception
 		await page.setRequestInterception(true);
-		//page.on('console', consoleObj => console.log("==>browser.console:",consoleObj.text()));
+		// page.on('console', consoleObj => console.log("==>browser.console:",consoleObj.text()));
 		page.setDefaultNavigationTimeout(options.navigationTimeout);
 		await page.setViewport({ width: 1366, height: 768, });
 
@@ -161,6 +161,13 @@ class Crawler {
 
 	_goto = async (url) => {
 		if (this.options.verbose) console.log("LOADDING-> ", url)
+
+		for(let exurl of this.options.excludedUrls){
+			if(url.match(exurl)){
+				console.log(`[*filter] ${url} fliter by options -x`)
+				return
+			}
+		}
 
 		try {
 			return await this._page.goto(url, {
@@ -365,68 +372,11 @@ class Crawler {
 	};
 
 	analyze = async (targetUrl) => {
-		let that = this;
-		let page = that.page();
-		that.browser().on("targetcreated", async (target) => {
-			//TODO need close page quickily,and try avoid listen event twice
-			//console.log("===>on targetcreated:", target.url());
-			if (target.type() === 'page') {
-
-				let targeturl = target.url();
-				const p = await target.page();
-				await Promise.all([
-					p.close(),
-					that.dispatchProbeEvent("newtab", { "request": RequestModel(targeturl, "newtab") })
-				]);
-			}
-		});
-
-		// removing all event listeners before listening to the request event is to prevent multiple-listen
-		page.removeAllListeners("request");
-		page.on('request', async req => {
-			targetUrl = urlparse.parse(targetUrl);
-			//console.log("navgation or redirect =>", req.url(), "host:", targetUrl.host, `navigation:${this._allowNavigation},redirect:${req.redirectChain().length > 0}`);
-			// Active navigation or in a redirect round
-			if (this._allowNavigation) {
-				return await req.continue();
-			} else if (req.redirectChain().length > 0) {
-				await this.dispatchProbeEvent("redirect", { request: RequestModel(req.url(), "newtab", req._method) });
-				return await req.continue();
-			} else if (req.isNavigationRequest() && req.frame() == page.mainFrame()) { //Navigation actions that are not active navigation
-				await this.dispatchProbeEvent("navigation", { request: RequestModel(req.url(), "navigation", req._method) });
-				return await req.abort('aborted');
-			} else {
-				return await req.abort('failed');
-			}
-		});
-
-		let domLoaded = false;
-		let endRequested = false;
-		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
-		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
-
-		if (!this.options.outputFunc)
-			console.log("options.outputFunc not set")
-		let outputFunc = this.options.outputFunc ? this.options.outputFunc : (msgs) => { console.log("@&=> msgs:", msgs) };
-		let out = new output(outputFunc);
-		out.print_url(targetUrl);
-		this.monitorEvent(out);
-
-		try {
-			await this.navigate(targetUrl);
-		} catch (e) {
-			console.error("error in navigate ", targetUrl, e)
-			// clear previrous errors
-			this._errors.push(e)
-			return out.printStatus(that)
-		}
-
-
 		async function exit() {
 			//await sleep(1000000)
-			//clearTimeout(execTO);
+			clearTimeout(execTO);
 			//await crawler.browser().close();
-			// fs.unlink(pidfile, (err) => { });
+			fs.unlink(pidfile, (err) => { });
 			// process.exit();
 			return out.printStatus(that);
 		}
@@ -477,13 +427,69 @@ class Crawler {
 			return await page.$(selector);
 		}
 
+		let that = this;
+		let page = that.page();
+		that.browser().on("targetcreated", async (target) => {
+			//TODO need close page quickily,and try avoid listen event twice
+			//console.log("===>on targetcreated:", target.url());
+			if (target.type() === 'page') {
+
+				let targeturl = target.url();
+				const p = await target.page();
+				await Promise.all([
+					p.close(),
+					that.dispatchProbeEvent("newtab", { "request": RequestModel(targeturl, "newtab") })
+				]);
+			}
+		});
+
+		// removing all event listeners before listening to the request event is to prevent multiple-listen
+		page.removeAllListeners("request");
+		page.on('request', async req => {
+			// targetUrl = urlparse.parse(targetUrl);
+			// console.log("navgation or redirect =>", req.url(), "host:", targetUrl.host, `navigation:${this._allowNavigation},redirect:${req.redirectChain().length > 0}`);
+			// Active navigation or in a redirect round
+			if (this._allowNavigation) {
+				return await req.continue();
+			} else if (req.redirectChain().length > 0) {
+				await this.dispatchProbeEvent("redirect", { request: RequestModel(req.url(), "newtab", req._method) });
+				return await req.continue();
+			} else if (req.isNavigationRequest() && req.frame() == page.mainFrame()) { //Navigation actions that are not active navigation
+				await this.dispatchProbeEvent("navigation", { request: RequestModel(req.url(), "navigation", req._method) });
+				return await req.abort('aborted');
+			} else {
+				return await req.abort('failed');
+			}
+		});
+
+		let domLoaded = false;
+		let endRequested = false;
+		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
+		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
+
+		if (!this.options.outputFunc)
+			console.log("options.outputFunc not set")
+		let outputFunc = this.options.outputFunc ? this.options.outputFunc : (msgs) => { console.log("@&=> msgs:", msgs) };
+		let out = new output(outputFunc);
+		out.print_url(targetUrl);
+		this.monitorEvent(out);
+
+		try {
+			await this.navigate(targetUrl);
+		} catch (e) {
+			console.error("error in navigate ", targetUrl, e)
+			// clear previrous errors
+			this._errors.push(e)
+			return out.printStatus(that)
+		}
+
 		fs.writeFileSync(pidfile, this.browser().process().pid.toString());
 
 		// set analyze single page timeout
-		execTO = setTimeout(function () {
+		let execTO = setTimeout(function () {
 			crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
 			end();
-		}, options.maxExecTime);
+		}, this.options.maxExecTime);
 
 		if (this.options.localStorage) {
 			page.evaluateOnNewDocument((storage) => {

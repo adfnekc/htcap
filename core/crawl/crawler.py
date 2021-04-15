@@ -45,11 +45,12 @@ from core.lib.utils import *
 from core.constants import *
 from .lib.utils import *
 
+log = logging.getLogger('htcap')
+
 
 class Crawler:
     def __init__(self, argv):
-
-        self.base_dir = getrealdir(__file__) + os.sep
+        self.base_dir = getrealdir(__file__)
 
         self.crawl_start_time = int(time.time())
         self.crawl_end_time = 0
@@ -278,8 +279,7 @@ class Crawler:
                         crawled += 1
                         pending -= 1
                         if self.verbose:
-                            logging.debug("crawl result for: %s " %
-                                          result.request)
+                            log.debug("crawl result for: %s " % result.request)
                             if len(result.request.user_output) > 0:
                                 print("  user: %s" %
                                       json.dumps(result.request.user_output))
@@ -297,11 +297,11 @@ class Crawler:
                                             r
                                     ).pattern not in self.request_patterns:
                                         filtered_requests.append(r)
+                                    else:
+                                        log.debug(
+                                            "  [*filter] req %s filter by self.request_patterns"
+                                        )
                                 result.found_requests = filtered_requests
-                                if self.verbose:
-                                    print(
-                                        " * marked as duplicated ... requests filtered"
-                                    )
 
                             self.page_hashes.append(result.page_hash)
                             for r in result.found_requests:
@@ -313,7 +313,7 @@ class Crawler:
                             database.save_request(req)
 
                             if self.verbose and req not in Shared.requests and req not in req_to_crawl:
-                                logging.debug("  new request found %s" % req)
+                                log.debug("  new request found %s" % req)
 
                             if request_is_crawlable(
                                     req
@@ -346,54 +346,30 @@ class Crawler:
                                 pending += 1
                                 req_to_crawl.append(req)
 
+                            else:
+                                if not request_is_crawlable(req):
+                                    log.debug(
+                                        "  [*filter] req %s filter by req is not crawlable"
+                                        % req)
+                                if req in Shared.requests:
+                                    log.debug(
+                                        "  [*filter] req %s filter by req in Shared.requests"
+                                        % req)
+                                if req in req_to_crawl:
+                                    log.debug(
+                                        "  [*filter] req %s filter by req in req_to_crawl"
+                                        % req)
+
                     Shared.crawl_results = []
                     database.commit()
                     database.close()
                 Shared.main_condition.release()
 
-            except KeyboardInterrupt:
-                try:
-                    Shared.main_condition.release()
-                    Shared.th_condition.release()
-                except Exception as e:
-                    print("main_condition.release.. " + str(e))
-                self.pause_threads(threads, True)
-                if not self.get_runtime_command():
-                    print("Exiting . . .")
-                    return
-                print("Crawler is running")
-                self.pause_threads(threads, False)
-
-    def get_runtime_command(self):
-        while True:
-            print("\nCrawler is paused.\n"
-                  "   r    resume\n"
-                  "   v    verbose mode\n"
-                  "   p    show progress bar\n"
-                  "   q    quiet mode\n"
-                  "Hit ctrl-c again to exit\n")
-            try:
-                ui = input("> ").strip()
-            except KeyboardInterrupt:
-                print("")
-                return False
-
-            if ui == "r":
-                break
-            elif ui == "v":
-                self.verbose = True
-                break
-            elif ui == "p":
-                self.display_progress = True
-                self.verbose = False
-                break
-            elif ui == "q":
-                self.verbose = False
-                self.display_progress = False
-                break
-            print(" ")
-
-        return True
+            except Exception as e:
+                self.kill_threads(threads)
+                log.error("main_loop err:", e)
+                Shared.main_condition.release()
+                Shared.th_condition.release()
 
     def main(self, argv):
         Shared.options = self.defaults
@@ -669,8 +645,11 @@ class Crawler:
 
         self.main_loop(threads, start_requests, database)
 
-        self.kill_threads(threads)
-        node_process.terminate()
+        try:
+            self.kill_threads(threads)
+            node_process.kill()
+        except Exception as e:
+            log.error("process terminate err:%s" % e)
 
         self.crawl_end_time = int(time.time())
 
@@ -695,17 +674,25 @@ def start_node(cmd: List[str],
                 cookie['domain'] = purl.netloc.split(":")[0]
             cookies.append(cookie)
 
-        logging.debug("cookie:%s write to file <%s>" % (cookies, cookie_file))
+        log.debug("cookie:%s write to file <%s>" % (cookies, cookie_file))
         with open(cookie_file, 'w') as fil:
             fil.write(json.dumps(cookies))
 
     cmd.extend(["-c", cookie_file])
-    with open("./log/node.log", "w+") as f:
+    f = open("./log/node.log", "w+")
+    try:
         node_process = subprocess.Popen(cmd,
                                         stdout=f,
                                         stderr=f,
                                         text=True,
                                         cwd=os.path.dirname(cmd[1]))
-    logging.debug("cmd:%s,cwd:%s" % (cmd, os.path.dirname(cmd[1])))
-    time.sleep(5)
+        log.debug("cmd:%s,cwd:%s" % (cmd, os.path.dirname(cmd[1])))
+        time.sleep(5)
+        r_code = node_process.poll()
+        if r_code is not None:
+            raise Exception(
+                "process has been terminate ,returncode:%d ,check cmd :%s" %
+                (r_code, cmd))
+    except Exception as e:
+        raise e
     return node_process, cookie_file

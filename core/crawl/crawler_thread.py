@@ -39,8 +39,6 @@ class CrawlerThread(threading.Thread):
         threading.Thread.__init__(self)
         self._name = name
         self.thread_uuid = uuid.uuid4()
-        self.process_retries = 2
-        self.process_retries_interval = 0.5
 
         self.status = THSTAT_RUNNING
         self.exit = False
@@ -98,13 +96,8 @@ class CrawlerThread(threading.Thread):
         ls = Shared.options['login_sequence']
         if ls and ls['type'] != LOGSEQTYPE_STANDALONE:
             ls = None
-        self.probe_executor = ProbeExecutor(request,
-                                            Shared.probe_cmd,
-                                            cookie_file=self.cookie_file,
-                                            out_file=self.out_file,
-                                            login_sequence=ls)
+        self.probe_executor = ProbeExecutor(request)
         probe = self.probe_executor.execute(
-            retries=self.process_retries,
             process_timeout=Shared.options['process_timeout'])
         errors.extend(self.probe_executor.errors)
         return probe
@@ -147,6 +140,9 @@ class CrawlerThread(threading.Thread):
                     if probe.html:
                         request.html = probe.html
 
+                    if probe.page_hash:
+                        request.page_hash = probe.page_hash
+
                     if len(probe.user_output) > 0:
                         request.user_output = probe.user_output
 
@@ -157,7 +153,7 @@ class CrawlerThread(threading.Thread):
                     continue
                 try:
                     hr = HttpGet(request, Shared.options['process_timeout'],
-                                 self.process_retries,
+                                 1,
                                  Shared.options['useragent'],
                                  Shared.options['proxy'],
                                  Shared.options['extra_headers'])

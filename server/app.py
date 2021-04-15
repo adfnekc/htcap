@@ -3,7 +3,13 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 
+@app.route('/u')
+def u():
+    return render_template('u.html')
+
+
 @app.route('/')
+@app.route('/index.html')
 def hello_world():
     return render_template('index.html')
 
@@ -23,4 +29,4 @@ def name():
     return "name\n"
 
 
-app.run('0.0.0.0',debug=True)
+app.run('0.0.0.0', debug=True)

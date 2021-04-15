@@ -58,6 +58,8 @@ if __name__ == '__main__':
                         datefmt='%m/%d/%Y %I:%M:%S %p',
                         filename='./log/app.log')
 
+    log = logging.getLogger('htcap')
+
     node_dir = os.path.join(getrealdir(__file__), 'core', 'nodejs')
     env_sep = ':' if sys.platform != "win32" else ';'
     os.environ["NODE_PATH"] = env_sep.join(
