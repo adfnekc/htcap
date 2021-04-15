@@ -245,13 +245,12 @@ class Crawler:
     def main_loop(self, threads, start_requests, database):
         pending = len(start_requests)
         crawled = 0
-        # pb = Progressbar(self.crawl_start_time, "pages processed")
+        pb = Progressbar(self.crawl_start_time, "pages processed")
         req_to_crawl = start_requests
         while True:
             try:
                 # if self.display_progress and not self.verbose:
-                #     tot = (crawled + pending)
-                #     pb.out(tot, crawled)
+                pb.out(crawled + pending, crawled)
 
                 if pending == 0:
                     # is the check of running threads really needed?
@@ -687,7 +686,6 @@ def start_node(cmd: List[str],
                                         text=True,
                                         cwd=os.path.dirname(cmd[1]))
         log.debug("cmd:%s,cwd:%s" % (cmd, os.path.dirname(cmd[1])))
-        time.sleep(5)
         r_code = node_process.poll()
         if r_code is not None:
             raise Exception(

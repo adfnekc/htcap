@@ -189,6 +189,9 @@ class httpIO extends io {
                 while (flag) {
                     if (targeturl in this._result_dic) {
                         res = this._result_dic[targeturl];
+                        if (res["errors"] != "") {
+                            console.error(`err in ${res.url}:${JSON.stringify(res)}`)
+                        }
                         ctx.status = 200
                         break;
                     }

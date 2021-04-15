@@ -14,6 +14,8 @@ from .shared import *
 import posixpath
 import json
 import requests as req
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 import re
 import logging
 from core.crawl.lib.probe import Probe
@@ -138,7 +140,9 @@ class ProbeExecutor:
         url = self.request.url
 
         if url in Shared.probed_req_urls:
-            log.debug("  [*filter] req placeholder GET %s filter by probed_req_urls" % url)
+            log.debug(
+                "  [*filter] req placeholder GET %s filter by probed_req_urls"
+                % url)
             return
         Shared.probed_req_urls.add(url)
         probe = None
@@ -149,13 +153,6 @@ class ProbeExecutor:
         if probeArray:
             probe = Probe(probeArray, self.request)
         return probe
-
-        # jsn = None
-        # if os.path.isfile(self.out_file):
-        #     with open(self.out_file, "r") as f:
-        #         jsn = f.read()
-        #     os.unlink(self.out_file)
-
         # if err or not jsn:
         #     print(err)
         #     self.errors.append(ERROR_PROBEKILLED)
@@ -188,12 +185,14 @@ class ProbeExecutor:
 
 
 def probe_http(url: str, timeout: int) -> str:
-    # return "{\"status\":\"ok\",\"errors\":\"\",\"redirect\":\"\",\"cookies\":[{\"name\":\"Elgg\",\"value\":\"d69abf1a24a76431dffbd8992f433a5e\",\"domain\":\"localhost\",\"path\":\"/\",\"expires\":-1,\"httponly\":false,\"secure\":false}],\"requests\":[\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/login\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/forgotpassword\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/activity\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/blog/all\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/bookmarks\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/file\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/groups/all\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/members\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/pages\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://localhost:8080/thewire/all\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"link\\\",\\\"url\\\":\\\"http://elgg.org/\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null}\",\"{\\\"type\\\":\\\"form\\\",\\\"method\\\":\\\"POST\\\",\\\"url\\\":\\\"http://localhost:8080/action/login\\\",\\\"data\\\":\\\"__elgg_token=Fi4JBaJeHDRdt--C8bVtHg&__elgg_ts=1615954528&username=XdXcgcbc&password=Xib%25Io416%25%2C&returntoreferer=true&persistent=true\\\"}\",\"{\\\"type\\\":\\\"form\\\",\\\"method\\\":\\\"GET\\\",\\\"url\\\":\\\"http://localhost:8080/search\\\",\\\"data\\\":\\\"q=XdXcgcbc&search_type=all\\\"}\",\"{\\\"type\\\":\\\"form\\\",\\\"method\\\":\\\"POST\\\",\\\"url\\\":\\\"http://localhost:8080/action/login\\\",\\\"data\\\":\\\"__elgg_token=Fi4JBaJeHDRdt--C8bVtHg&__elgg_ts=1615954528&username=XdXcgcbc&password=Xib%25Io416%25%2C&persistent=true\\\"}\",\"{\\\"url\\\":\\\"http://localhost:8080/\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"type\\\":\\\"xhr\\\",\\\"method\\\":\\\"POST\\\",\\\"url\\\":\\\"http://localhost:8080/action/login?\\\",\\\"data\\\":{},\\\"trigger\\\":{\\\"element\\\":\\\"#login-dropdown-box > div > form > fieldset > div:nth-of-type(3) > div > div > button > span\\\",\\\"event\\\":\\\"click\\\"},\\\"extra_headers\\\":{\\\"Accept\\\":\\\"application/json, text/javascript, */*; q=0.01\\\",\\\"X-Elgg-Ajax-API\\\":\\\"2\\\",\\\"X-Requested-With\\\":\\\"XMLHttpRequest\\\"}}\",\"{\\\"url\\\":\\\"http://localhost:8080/forgotpassword\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/search?q=XdXcgcbc&search_type=all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/activity\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/blog/all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/bookmarks\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/file\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/groups/all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/members\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/pages\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://localhost:8080/thewire/all\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\",\"{\\\"url\\\":\\\"http://elgg.org/\\\",\\\"type\\\":\\\"navigation\\\",\\\"method\\\":\\\"GET\\\",\\\"data\\\":null,\\\"trigger\\\":null,\\\"extra_headers\\\":{}}\"]}"
     log.debug("get -> %s" % url)
-
     url = req.utils.quote(url, safe='~()*!.\'')
     url = "http://" + Shared.node_host + "/url/" + url
-    res = req.get(url, timeout=timeout)
+
+    retries = Retry(total=10, backoff_factor=0.5)
+    s = req.Session()
+    s.mount('http://', HTTPAdapter(max_retries=retries))
+    res = s.get(url, timeout=timeout)
 
     if res.status_code == 200:
         return res.text

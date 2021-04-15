@@ -133,18 +133,14 @@ class CrawlerThread(threading.Thread):
             probe = self.send_probe(request, errors)
 
             if probe:
-                if probe.status == "ok":
-
-                    requests = probe.requests
-
-                    if probe.html:
-                        request.html = probe.html
-
-                    if probe.page_hash:
-                        request.page_hash = probe.page_hash
-
-                    if len(probe.user_output) > 0:
-                        request.user_output = probe.user_output
+                requests = probe.requests
+                if probe.html:
+                    request.html = probe.html
+                if probe.page_hash:
+                    request.page_hash = probe.page_hash
+                if len(probe.user_output) > 0:
+                    request.user_output = probe.user_output
+                errors.append(probe.errmessage)
 
             else:
                 errors.append(ERROR_PROBEFAILURE)

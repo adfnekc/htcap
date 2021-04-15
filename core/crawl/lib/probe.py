@@ -21,7 +21,8 @@ class Probe:
         self.status = "ok"
         self.requests = []
         self.cookies = []
-        self.redirect = None
+        self.redirect = []
+        self.errmessage = ""
         # if True the probe returned no error BUT the json is not closed properly
         self.partialcontent = False
         self.html = None
@@ -38,32 +39,27 @@ class Probe:
         for cookie in data["cookies"]:
             self.cookies.append(Cookie(cookie, parent.url))
 
-        if data["redirect"] != "":
-            pass
-            # TODO need handle redirect
-            # self.redirect = status['redirect']
-            # r = Request(REQTYPE_REDIRECT,
-            #             "GET",
-            #             self.redirect,
-            #             parent=parent,
-            #             set_cookie=self.cookies,
-            #             parent_db_id=parent.db_id)
-            # self.requests.append(r)
+        for redirect in data['redirect']:
+            r = Request(REQTYPE_REDIRECT,
+                        "GET",
+                        redirect,
+                        parent=parent,
+                        set_cookie=self.cookies,
+                        parent_db_id=parent.db_id)
+            self.redirect.append(r)
 
         requests = data["requests"]
         for request in requests:
             request = json.loads(request)
-            trigger = safe_get(request, "trigger", None)
-            extra_headers = safe_get(request, "extra_headers", None)
             r = Request(request['type'],
                         request['method'],
                         request['url'],
                         parent=parent,
+                        parent_db_id=parent.db_id,
                         set_cookie=self.cookies,
                         data=request['data'],
-                        trigger=trigger,
-                        parent_db_id=parent.db_id,
-                        extra_headers=extra_headers)
+                        trigger=safe_get(request, "trigger", None),
+                        extra_headers=safe_get(request, "extra_headers", None))
             self.requests.append(r)
         #except Exception as e:
         #	pass

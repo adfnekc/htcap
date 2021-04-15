@@ -74,7 +74,6 @@ exports.options = {
 	extraHeaders: false,
 	openChromeDevtoos: false,
 	exceptionOnRedirect: false,
-	navigationTimeout: 10000,
 	bypassCSP: true,
 	simulateRealEvents: true
 };

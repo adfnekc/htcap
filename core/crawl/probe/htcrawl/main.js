@@ -67,7 +67,7 @@ exports.NewCrawler = async function (options) {
 		// setRequestInterception
 		await page.setRequestInterception(true);
 		// page.on('console', consoleObj => console.log("==>browser.console:",consoleObj.text()));
-		page.setDefaultNavigationTimeout(options.navigationTimeout);
+		page.setDefaultNavigationTimeout(options.maxExecTime);
 		await page.setViewport({ width: 1366, height: 768, });
 
 		// always dismiss popup dialog including:alert,prompt,confirm or beforeunload
@@ -162,19 +162,12 @@ class Crawler {
 	_goto = async (url) => {
 		if (this.options.verbose) console.log("LOADDING-> ", url)
 
-		for(let exurl of this.options.excludedUrls){
-			if(url.match(exurl)){
-				console.log(`[*filter] ${url} fliter by options -x`)
-				return
-			}
-		}
-
 		try {
 			return await this._page.goto(url, {
 				waitUntil: 'load'
 			});
 		} catch (e) {
-			this._errors.push(["navigation", `goto err,${e.message}`]);
+			e = `goto err,${e.message}`;
 			throw e;
 		};
 	};
@@ -319,14 +312,19 @@ class Crawler {
 	};
 
 	navigate = async (url) => {
+		for (let exurl of this.options.excludedUrls) {
+			if (url.match(exurl)) {
+				console.log(`[*filter] ${url} fliter by options -x`)
+				return
+			}
+		}
 		await this.inject(this.page());
 		var resp = null;
 		this._allowNavigation = true;
 		try {
 			resp = await this._goto(url);
 		} catch (e) {
-			this._errors.push(["navigation", "navigation aborted3" + e]);
-			throw ("Navigation error" + e);
+			throw ("Navigation error3 " + e);
 		} finally {
 			this._allowNavigation = false;
 		}
@@ -367,7 +365,6 @@ class Crawler {
 			await this._afterNavigation(pa[2]);
 			return true;
 		}
-		_this._errors.push(["navigation", "navigation aborted5"]);
 		throw ("Navigation error");
 	};
 
@@ -480,6 +477,9 @@ class Crawler {
 			console.error("error in navigate ", targetUrl, e)
 			// clear previrous errors
 			this._errors.push(e)
+			if (e.message.search("Navigation timeout") != -1) {
+				end()
+			}
 			return out.printStatus(that)
 		}
 
@@ -498,70 +498,6 @@ class Crawler {
 					fn.setItem(s, storage[s].value);
 				}
 			}, this.options.localStorage)
-		}
-
-		if (loginSeq) {
-			if (await isLogged(crawler.page(), loginSeq.loggedinCondition) == false) {
-				if (loginSeq.url && loginSeq.url != targetUrl && !options.loadWithPost) {
-					try {
-						await crawler.navigate(loginSeq.url);
-					} catch (err) {
-						await loginErr("navigating to login page");
-					}
-				}
-				let seqline = 1;
-				for (let seq of loginSeq.sequence) {
-					switch (seq[0]) {
-						case "sleep":
-							await sleep(seq[1]);
-							break;
-						case "write":
-							try {
-								let e = await getElement(seq[1], crawler.page());
-								await e.type(seq[2]);
-							} catch (e) {
-								await loginErr("element not found ", seqline);
-							}
-							break;
-						case "set":
-							try {
-								let e = await getElement(seq[1], crawler.page());
-								await crawler.page().evaluate((el, u) => { el.value = u }, e, seq[2])
-							} catch (e) {
-								await loginErr("element not found", seqline);
-							}
-							break;
-						case "click":
-							try {
-								let e = await getElement(seq[1], crawler.page());
-								await e.click();
-							} catch (e) {
-								await loginErr("element not found", seqline);
-							}
-							await crawler.waitForRequestsCompletion();
-							break;
-						case "clickToNavigate":
-							let e = await getElement(seq[1], crawler.page());
-							if (e == null) {
-								await loginErr("element not found", seqline);
-							}
-							try {
-								await crawler.clickToNavigate(e, seq[2]);
-							} catch (err) {
-								await loginErr(err, seqline);
-							}
-							break;
-						case "assertLoggedin":
-							if (await isLogged(crawler.page(), loginSeq.loggedinCondition) == false) {
-								await loginErr("login sequence faild", seqline);
-							}
-							break;
-						default:
-							await loginErr("action not found", seqline);
-					}
-					seqline++;
-				}
-			}
 		}
 
 		// scroll page
@@ -709,135 +645,4 @@ class Crawler {
 			//crawler.browser().close();
 		});
 	}
-};
-
-let bootstrapPage = async function (browser) {
-	var options = this.options,
-		targetUrl = this.targetUrl,
-		pageCookies = this.pageCookies;
-
-	var crawler = this;
-	// generate a static map of random values using a "static" seed for input fields
-	// the same seed generates the same values
-	// generated values MUST be the same for all analyze.js call othewise the same form will look different
-	// for example if a page sends a form to itself with input=random1,
-	// the same form on the same page (after first post) will became input=random2
-	// => form.data1 != form.data2 => form.data2 is considered a different request and it'll be crawled.
-	// this process will lead to and infinite loop!
-	var inputValues = utils.generateRandomValues(this.options.randomSeed);
-
-	const page = await browser.newPage();
-	crawler._page = page;
-	//if(options.verbose)console.log("new page")
-	await page.setRequestInterception(true);
-	if (options.bypassCSP) {
-		await page.setBypassCSP(true);
-	}
-	page.on('request', async req => {
-		const overrides = {
-		};
-		if (req.isNavigationRequest() && req.frame() == page.mainFrame()) {
-			if (req.redirectChain().length > 0 && !crawler._allowNavigation) {
-				crawler._redirect = req.url();
-				var uRet = await crawler.dispatchProbeEvent("redirect", {
-					url: crawler._redirect
-				});
-				if (!uRet) {
-					req.abort('aborted'); // die silently
-					return;
-				}
-				if (options.exceptionOnRedirect) {
-					req.abort('failed'); // throws exception
-					return;
-				}
-				req.continue();
-				return;
-			}
-
-			if (!crawler._firstRun) {
-				let r = new utils.Request("navigation", req.method() || "GET", req.url().split("#")[0], req.postData());
-				await crawler.dispatchProbeEvent("navigation", {
-					request: r
-				});
-
-				if (crawler._allowNavigation) {
-					req.continue();
-				} else {
-					req.abort('aborted');
-				}
-				return;
-			} else {
-				if (options.loadWithPost) {
-					overrides.method = 'POST';
-					if (options.postData) {
-						overrides.postData = options.postData;
-					}
-				}
-			}
-
-			crawler._firstRun = false;
-		}
-
-		req.continue(overrides);
-	});
-
-
-	page.on("dialog", function (dialog) {
-		dialog.accept();
-	});
-
-	browser.on("targetcreated", async (target) => {
-		const p = await target.page();
-		// if (p) p.close();
-	});
-
-
-	page.exposeFunction("__htcrawl_probe_event__", (name, params) => {
-		return this.dispatchProbeEvent(name, params)
-	}); // <- automatically awaited.."If the puppeteerFunction returns a Promise, it will be awaited."
-
-	await page.setViewport({
-		width: 1366,
-		height: 768,
-	});
-
-	page.evaluateOnNewDocument(probe.initProbe, this.options, inputValues);
-	page.evaluateOnNewDocument(probeTextComparator.initTextComparator);
-	page.evaluateOnNewDocument(utils.hookNativeFunctions, this.options);
-
-	try {
-		if (options.referer) {
-			await page.setExtraHTTPHeaders({
-				'Referer': options.referer
-			});
-		}
-		if (options.extraHeaders) {
-			await page.setExtraHTTPHeaders(options.extraHeaders);
-		}
-		for (let i = 0; i < options.setCookies.length; i++) {
-			if (!options.setCookies[i].expires)
-				options.setCookies[i].expires = parseInt((new Date()).getTime() / 1000) + (60 * 60 * 24 * 365);
-			//console.log(options.setCookies[i]);
-			await page.setCookie(options.setCookies[i]);
-		}
-
-		if (options.httpAuth) {
-			await page.authenticate({
-				username: options.httpAuth[0], password: options.httpAuth[1]
-			});
-		}
-
-		if (options.userAgent) {
-			await page.setUserAgent(options.userAgent);
-		}
-
-		await this._page.setDefaultNavigationTimeout(this.options.navigationTimeout);
-
-		//if(options.verbose)console.log("goto returned")
-
-	} catch (e) {
-		// do something  . . .
-		console.log(e)
-	}
-
 };
