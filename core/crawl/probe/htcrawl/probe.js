@@ -21,9 +21,9 @@ module.exports = {
 	this function is passed to page.evaluate. doing so it is possible to avoid that the Probe object
 	is inserted into page window scope (only its instance is referred by window.__PROBE__)
 */
-function initProbe(options, inputValues){
+function initProbe(options, inputValues) {
 
-	function Probe(options, inputValues){
+	function Probe(options, inputValues) {
 		var _this = this;
 
 		this.options = options;
@@ -61,42 +61,42 @@ function initProbe(options, inputValues){
 	};
 
 
-	Probe.prototype.objectInArray  = function(arr, el, ignoreProperties){
+	Probe.prototype.objectInArray = function (arr, el, ignoreProperties) {
 		ignoreProperties = ignoreProperties || [];
-		if(arr.length == 0) return false;
-		if(typeof arr[0] != 'object')
+		if (arr.length == 0) return false;
+		if (typeof arr[0] != 'object')
 			return arr.indexOf(el) > -1;
-		for(var a = 0 ;a < arr.length; a++){
+		for (var a = 0; a < arr.length; a++) {
 			var found = true;
-			for(var k in arr[a]){
-				if(arr[a][k] != el[k] && ignoreProperties.indexOf(k) == -1){
+			for (var k in arr[a]) {
+				if (arr[a][k] != el[k] && ignoreProperties.indexOf(k) == -1) {
 					found = false;
 				}
 			}
-			if(found) return true;
+			if (found) return true;
 		}
 		return false;
 	};
 
 
 
-	Probe.prototype.arrayUnique = function(arr, ignoreProperties){
+	Probe.prototype.arrayUnique = function (arr, ignoreProperties) {
 		var ret = [];
 
-		for(var a = 0; a < arr.length ; a++){
-			if(!this.objectInArray(ret, arr[a], ignoreProperties))
+		for (var a = 0; a < arr.length; a++) {
+			if (!this.objectInArray(ret, arr[a], ignoreProperties))
 				ret.push(arr[a]);
 		}
 		return ret;
 	};
 
-	Probe.prototype.compareObjects = function(obj1, obj2){
+	Probe.prototype.compareObjects = function (obj1, obj2) {
 		var p;
-		for(p in obj1)
-			if(obj1[p] != obj2[p]) return false;
+		for (p in obj1)
+			if (obj1[p] != obj2[p]) return false;
 
-		for(p in obj2)
-			if(obj2[p] != obj1[p]) return false;
+		for (p in obj2)
+			if (obj2[p] != obj1[p]) return false;
 
 		return true;
 	}
@@ -112,21 +112,21 @@ function initProbe(options, inputValues){
 		anchor.search;   // => "?search=test"
 	*/
 
-	Probe.prototype.replaceUrlQuery = function(url, qs){
+	Probe.prototype.replaceUrlQuery = function (url, qs) {
 		var anchor = document.createElement("a");
 		anchor.href = url;
 		return anchor.protocol + "//" + anchor.host + anchor.pathname + (qs ? "?" + qs : "") + anchor.hash;
 	};
 
-	Probe.prototype.removeUrlParameter = function(url , par){
+	Probe.prototype.removeUrlParameter = function (url, par) {
 		var anchor = document.createElement("a");
 		anchor.href = url;
 
 		var pars = anchor.search.substr(1).split(/(?:&amp;|&)+/);
 
-		for(var a = pars.length - 1; a >= 0; a--){
-			if(pars[a].split("=")[0] == par)
-				pars.splice(a,1);
+		for (var a = pars.length - 1; a >= 0; a--) {
+			if (pars[a].split("=")[0] == par)
+				pars.splice(a, 1);
 		}
 
 
@@ -134,7 +134,7 @@ function initProbe(options, inputValues){
 	};
 
 
-	Probe.prototype.getAbsoluteUrl = function(url){
+	Probe.prototype.getAbsoluteUrl = function (url) {
 		var anchor = document.createElement('a');
 		anchor.href = url;
 		return anchor.href;
@@ -145,28 +145,28 @@ function initProbe(options, inputValues){
 
 
 	// do NOT use MutationObserver to get added elements .. it is asynchronous and the callback is fired only when DOM is refreshed (graphically)
-	Probe.prototype.takeDOMSnapshot = function(){
-		this.DOMSnapshot = Array.prototype.slice.call( document.getElementsByTagName("*"), 0 );
+	Probe.prototype.takeDOMSnapshot = function () {
+		this.DOMSnapshot = Array.prototype.slice.call(document.getElementsByTagName("*"), 0);
 		return;
 		var els = document.getElementsByTagName("*");
-		for(var a = 0; a < els.length; a++){
-			if(!els[a].__snapshot)
+		for (var a = 0; a < els.length; a++) {
+			if (!els[a].__snapshot)
 				els[a].__snapshot = true;
 		}
 	}
 
 
-	Probe.prototype.getAddedElements = function(){
+	Probe.prototype.getAddedElements = function () {
 		var elements = []
 		var rootElements = []
 		var ueRet = null;
-		var newDom = Array.prototype.slice.call( document.getElementsByTagName("*"), 0 );
+		var newDom = Array.prototype.slice.call(document.getElementsByTagName("*"), 0);
 
 		//*/console.log('get added elements start dom len: ' + this.DOMSnapshot.length + ' new dom len: ' + newDom.length);
 		// get all added elements
-		for(var a = 0;a < newDom.length;a++){
-			if(this.DOMSnapshot.indexOf(newDom[a]) == -1) {
-			//if(!newDom[a].__snapshot){
+		for (var a = 0; a < newDom.length; a++) {
+			if (this.DOMSnapshot.indexOf(newDom[a]) == -1) {
+				//if(!newDom[a].__snapshot){
 				// set __new flag on added elements to avoid checking for elments.indexOf
 				// that is very very slow
 				newDom[a].__new = true;
@@ -176,23 +176,23 @@ function initProbe(options, inputValues){
 
 		///console.log("elements get... (tot "+elements.length+") searching for root nodes")
 
-		for(var a = 0; a < elements.length; a++){
+		for (var a = 0; a < elements.length; a++) {
 			var p = elements[a];
 			var root = null;
 			// find the farest parent between added elements
-			while(p){
+			while (p) {
 				//if(elements.indexOf(p) != -1){
-				if(p.__new){
+				if (p.__new) {
 					root = p;
 				}
 				p = p.parentNode;
 			}
-			if(root && rootElements.indexOf(root) == -1){
+			if (root && rootElements.indexOf(root) == -1) {
 				rootElements.push(root);
 			}
 		}
 
-		for(var a = 0; a < elements.length; a++){
+		for (var a = 0; a < elements.length; a++) {
 			delete elements[a].__new;
 		}
 
@@ -203,15 +203,15 @@ function initProbe(options, inputValues){
 
 
 	/* DO NOT include node as first element.. this is a requirement */
-	Probe.prototype.getDOMTreeAsArray = function(node){
+	Probe.prototype.getDOMTreeAsArray = function (node) {
 		var out = [];
 		var children = node.querySelectorAll(":scope > *");
 
-		if(children.length == 0){
+		if (children.length == 0) {
 			return out;
 		}
 
-		for(var a = 0; a < children.length; a++){
+		for (var a = 0; a < children.length; a++) {
 			out.push(children[a]);
 			out = out.concat(this.getDOMTreeAsArray(children[a]));
 		}
@@ -224,7 +224,7 @@ function initProbe(options, inputValues){
 
 	// class Request
 
-	Probe.prototype.Request = function(type, method, url, data, trigger, extra_headers){
+	Probe.prototype.Request = function (type, method, url, data, trigger, extra_headers) {
 		this.type = type;
 		this.method = method;
 		this.url = url;
@@ -238,19 +238,19 @@ function initProbe(options, inputValues){
 
 	// returns a unique string represntation of the request. used for comparision
 	// should I also use extra_headers for comparisionn??
-	Probe.prototype.Request.prototype.key = function(){
+	Probe.prototype.Request.prototype.key = function () {
 		var key = "" + this.type + this.method + this.url + (this.data ? this.data : "") + (this.trigger ? this.trigger : "")
 		return key;
 	};
 
 
-	Probe.prototype.requestToJson = function(req){
+	Probe.prototype.requestToJson = function (req) {
 
 		return JSON.stringify(this.requestToObject(req));
 	}
 
-	Probe.prototype.requestToObject = function(req){
-		var obj ={
+	Probe.prototype.requestToObject = function (req) {
+		var obj = {
 			type: req.type,
 			method: req.method,
 			url: req.url,
@@ -258,7 +258,7 @@ function initProbe(options, inputValues){
 			extra_headers: req.extra_headers
 		};
 
-		if(req.trigger) obj.trigger = {element: this.describeElement(req.trigger.element), event:req.trigger.event};
+		if (req.trigger) obj.trigger = { element: this.describeElement(req.trigger.element), event: req.trigger.event };
 
 		return obj;
 	}
@@ -270,25 +270,25 @@ function initProbe(options, inputValues){
 
 
 	// returns true if the value has been set
-	Probe.prototype.setVal = async function(el){
+	Probe.prototype.setVal = async function (el) {
 		var options = this.options;
 		var _this = this;
 
-		var ueRet = await this.dispatchProbeEvent("fillinput", {element: this.getElementSelector(el)});
-		if(ueRet === false) return;
+		var ueRet = await this.dispatchProbeEvent("fillinput", { element: this.getElementSelector(el) });
+		if (ueRet === false) return;
 
-		var getv = function(type){
-			if(!(type in _this.inputValues))
+		var getv = function (type) {
+			if (!(type in _this.inputValues))
 				type = "string";
 
 			return _this.inputValues[type];
 		}
 
-		var setv = function(name){
+		var setv = function (name) {
 			var ret = getv('string');
-			for(var a = 0; a < options.inputNameMatchValue.length; a++){
+			for (var a = 0; a < options.inputNameMatchValue.length; a++) {
 				var regexp = new RegExp(options.inputNameMatchValue[a].name, "gi");
-				if(name.match(regexp)){
+				if (name.match(regexp)) {
 					ret = getv(options.inputNameMatchValue[a].value);
 				}
 			}
@@ -296,21 +296,21 @@ function initProbe(options, inputValues){
 		}
 
 		// needed for example by angularjs
-		var triggerChange =  function(){
+		var triggerChange = function () {
 			// update angular model
 			_this.trigger(el, 'input');
 		}
 
-		if(el.nodeName.toLowerCase() == 'textarea'){
+		if (el.nodeName.toLowerCase() == 'textarea') {
 			el.value = setv(el.name);
 			triggerChange();
 			return true;
 		}
 
-		if(el.nodeName.toLowerCase() == 'select'){
+		if (el.nodeName.toLowerCase() == 'select') {
 			var opts = el.getElementsByTagName('option');
-			if(opts.length > 1){ // avoid to set the first (already selected) options
-				el.value = opts[opts.length-1].value;
+			if (opts.length > 1) { // avoid to set the first (already selected) options
+				el.value = opts[opts.length - 1].value;
 			} else {
 				el.value = setv(el.name);
 			}
@@ -320,7 +320,7 @@ function initProbe(options, inputValues){
 
 		var type = el.type.toLowerCase();
 
-		switch(type){
+		switch (type) {
 			case 'button':
 			case 'hidden':
 			case 'submit':
@@ -334,15 +334,15 @@ function initProbe(options, inputValues){
 
 			case 'radio':
 			case 'checkbox':
-				el.setAttribute('checked',!(el.getAttribute('checked')));
+				el.setAttribute('checked', !(el.getAttribute('checked')));
 				break;
 			case 'range':
 			case 'number':
 
-				if('min' in el && el.min){
+				if ('min' in el && el.min) {
 
 					el.value = (parseInt(el.min) + parseInt(('step' in el) ? el.step : 1));
-				} else{
+				} else {
 					el.value = parseInt(getv('number'));
 				}
 				break;
@@ -381,12 +381,12 @@ function initProbe(options, inputValues){
 	// };
 
 
-	Probe.prototype.getStaticInputValue = function(input){
-		if(!this.options.staticInputValues.length )
+	Probe.prototype.getStaticInputValue = function (input) {
+		if (!this.options.staticInputValues.length)
 			return null;
 
-		for(let val of this.options.staticInputValues){
-			if(input.matches(val[0])){
+		for (let val of this.options.staticInputValues) {
+			if (input.matches(val[0])) {
 				return val[1];
 			}
 		}
@@ -395,32 +395,32 @@ function initProbe(options, inputValues){
 
 	};
 
-	Probe.prototype.fillInputValues = async function(element){
+	Probe.prototype.fillInputValues = async function (element) {
 		element = element || document;
 		var ret = false;
 		var els = element.querySelectorAll("input, select, textarea");
 
 
-		for(var a = 0; a < els.length; a++){
-			if(await this.setVal(els[a]))
+		for (var a = 0; a < els.length; a++) {
+			if (await this.setVal(els[a]))
 				ret = true;
 		}
 		return ret;
 	};
 
 
-	Probe.prototype.trigger = function(el, evname){
+	Probe.prototype.trigger = function (el, evname) {
 		/* 	workaround for a phantomjs bug on linux (so maybe not a phantom bug but some linux libs??).
 			if you trigger click on input type=color evertything freezes... maybe due to some
 			color picker that pops up ...
 		*/
-		if(el.tagName == "INPUT" && el.type.toLowerCase()=='color' && evname=='click'){
+		if (el.tagName == "INPUT" && el.type.toLowerCase() == 'color' && evname == 'click') {
 			return;
 		}
 
-		if(typeof evname != "string")return;
+		if (typeof evname != "string") return;
 
-		var pdh = function(e){
+		var pdh = function (e) {
 			/*
 			var el = e.target;
 			var urlproto = null;
@@ -447,47 +447,47 @@ function initProbe(options, inputValues){
 		if ('createEvent' in document) {
 			// @TODO solve the "mouse event" problem
 			var evt = null;
-			if(this.options.simulateRealEvents){
-				if(this.options.mouseEvents.indexOf(evname) != -1){
-					evt = new MouseEvent(evname, {view: window, bubbles: true, cancelable: true});
-					if(evname.toLowerCase() == "click" && el.matches('a, button, input[type="submit"], input[type="file"]')){
+			if (this.options.simulateRealEvents) {
+				if (this.options.mouseEvents.indexOf(evname) != -1) {
+					evt = new MouseEvent(evname, { view: window, bubbles: true, cancelable: true });
+					if (evname.toLowerCase() == "click" && el.matches('a, button, input[type="submit"], input[type="file"]')) {
 						el.addEventListener(evname, pdh);
 					}
-				/*} else if(this.options.keyboardEvents.indexOf(evname) != -1){*/
+					/*} else if(this.options.keyboardEvents.indexOf(evname) != -1){*/
 				}
 			}
 
-			if(evt == null) {
+			if (evt == null) {
 				evt = document.createEvent('HTMLEvents');
 				evt.initEvent(evname, true, false);
 			}
 			el.dispatchEvent(evt);
 		} else {
 			evname = 'on' + evname;
-			if( evname in el && typeof el[evname] == "function"){
-				console.log("******evname:",evname);
+			if (evname in el && typeof el[evname] == "function") {
+				console.log("******evname:", evname);
 				el[evname]();
 			}
 		}
-		try{
+		try {
 			el.removeEventListener(evname, pdh);
-		} catch(e){}
+		} catch (e) { }
 		//this.triggerUserEvent("onEventTriggered", [el, evname])
 	};
 
 
-	Probe.prototype.isEventTriggerable = function(event){
-		return ['load','unload','beforeunload'].indexOf(event) == -1;
+	Probe.prototype.isEventTriggerable = function (event) {
+		return ['load', 'unload', 'beforeunload'].indexOf(event) == -1;
 	};
 
-	Probe.prototype.getEventsForElement = function(element){
+	Probe.prototype.getEventsForElement = function (element) {
 		var events = [];
 		var map;
 
-		if(this.options.triggerAllMappedEvents){
+		if (this.options.triggerAllMappedEvents) {
 			map = this.eventsMap;
-			for(var a = 0; a < map.length; a++){
-				if(map[a].element == element){
+			for (var a = 0; a < map.length; a++) {
+				if (map[a].element == element) {
 					events = map[a].events.slice();
 					break;
 				}
@@ -495,8 +495,8 @@ function initProbe(options, inputValues){
 		}
 
 		map = this.options.eventsMap;
-		for(var selector in map){
-			if(element.webkitMatchesSelector(selector)){
+		for (var selector in map) {
+			if (element.webkitMatchesSelector(selector)) {
 				events = events.concat(map[selector]);
 			}
 		}
@@ -508,11 +508,11 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.triggerElementEvent = function(element, event){
-		var teObj = {el: element, ev: event};
+	Probe.prototype.triggerElementEvent = function (element, event) {
+		var teObj = { el: element, ev: event };
 		this.curElement = {};
-		if(!event)return
-		if(!this.isEventTriggerable(event) || this.objectInArray(this.triggeredEvents, teObj))
+		if (!event) return
+		if (!this.isEventTriggerable(event) || this.objectInArray(this.triggeredEvents, teObj))
 			return
 		this.curElement.element = element;
 		this.curElement.event = event;
@@ -520,8 +520,8 @@ function initProbe(options, inputValues){
 		this.trigger(element, event);
 	}
 
-	Probe.prototype.getTrigger = function(){
-		if(!this.curElement || !this.curElement.element)
+	Probe.prototype.getTrigger = function () {
+		if (!this.curElement || !this.curElement.element)
 			return null;
 
 		return {
@@ -531,68 +531,68 @@ function initProbe(options, inputValues){
 	};
 
 
-	Probe.prototype.describeElements = function(els){
+	Probe.prototype.describeElements = function (els) {
 		var ret = [];
-		for(el of els){
+		for (el of els) {
 			ret.push(this.describeElement(el));
 		}
 		return ret;
 	}
 
-	Probe.prototype.describeElement = function(el){
+	Probe.prototype.describeElement = function (el) {
 		//return this.stringifyElement(el);
 		return this.getElementSelector(el);
 	};
 
 
-	Probe.prototype.stringifyElement = function(el){
-		if(!el)
+	Probe.prototype.stringifyElement = function (el) {
+		if (!el)
 			return "[]";
-		var tagName = (el == document ? "DOCUMENT" : (el == window ? "WINDOW" :el.tagName));
+		var tagName = (el == document ? "DOCUMENT" : (el == window ? "WINDOW" : el.tagName));
 		var text = null;
-		if(el.textContent){
-			text =  el.textContent.trim().replace(/\s/," ").substring(0,10)
-			if(text.indexOf(" ") > -1) text = "'" + text + "'";
+		if (el.textContent) {
+			text = el.textContent.trim().replace(/\s/, " ").substring(0, 10)
+			if (text.indexOf(" ") > -1) text = "'" + text + "'";
 		}
 
 
 		var className = (el.className && typeof el.className == 'string') ? (el.className.indexOf(" ") != -1 ? "'" + el.className + "'" : el.className) : "";
 		var descr = "[" +
-				(tagName ? tagName +  " " : "") +
-				(el.name && typeof el.name == 'string' ? el.name + " " : "") +
-				(className ? "." + className + " " : "")+
-				(el.id ? "#" + el.id + " " : "") +
-				(el.src ? "src=" + el.src + " " : "") +
-				(el.action ? "action=" + el.action + " " : "") +
-				(el.method ? "method=" + el.method + " " : "") +
-				(el.value ? "v=" + el.value + " ": "") +
-				(text ? "txt=" + text : "") +
-				"]";
+			(tagName ? tagName + " " : "") +
+			(el.name && typeof el.name == 'string' ? el.name + " " : "") +
+			(className ? "." + className + " " : "") +
+			(el.id ? "#" + el.id + " " : "") +
+			(el.src ? "src=" + el.src + " " : "") +
+			(el.action ? "action=" + el.action + " " : "") +
+			(el.method ? "method=" + el.method + " " : "") +
+			(el.value ? "v=" + el.value + " " : "") +
+			(text ? "txt=" + text : "") +
+			"]";
 
 		return descr;
 
 	};
 
-	Probe.prototype.getElementSelector = function(element){
-		if(!element || !(element instanceof HTMLElement))
+	Probe.prototype.getElementSelector = function (element) {
+		if (!element || !(element instanceof HTMLElement))
 			return "";
 		var name = element.nodeName.toLowerCase();
 		var ret = [];
 		var selector = ""
 		var id = element.getAttribute("id");
 
-		if(id && id.match(/^[a-z][a-z0-9\-_:\.]*$/i)){
+		if (id && id.match(/^[a-z][a-z0-9\-_:\.]*$/i)) {
 			selector = "#" + id;
 		} else {
 			let p = element;
 			let cnt = 1;
-			while(p = p.previousSibling){
-				if(p instanceof HTMLElement && p.nodeName.toLowerCase() == name){
+			while (p = p.previousSibling) {
+				if (p instanceof HTMLElement && p.nodeName.toLowerCase() == name) {
 					cnt++;
 				}
 			}
 			selector = name + (cnt > 1 ? `:nth-of-type(${cnt})` : "");
-			if(element != document.documentElement && name != "body" && element.parentNode){
+			if (element != document.documentElement && name != "body" && element.parentNode) {
 				ret.push(this.getElementSelector(element.parentNode));
 			}
 		}
@@ -601,15 +601,15 @@ function initProbe(options, inputValues){
 	}
 
 
-	Probe.prototype.initializeElement = async function(element){
+	Probe.prototype.initializeElement = async function (element) {
 		var options = this.options;
 
-		if(options.mapEvents){
+		if (options.mapEvents) {
 			var els = element.getElementsByTagName("*");
-			for(var a = 0; a < els.length; a++){
-				for(var b = 0; b < options.allEvents.length; b++){
+			for (var a = 0; a < els.length; a++) {
+				for (var b = 0; b < options.allEvents.length; b++) {
 					var evname = "on" + options.allEvents[b];
-					if(evname in els[a] && els[a][evname]){
+					if (evname in els[a] && els[a][evname]) {
 						this.addEventToMap(els[a], options.allEvents[b]);
 					}
 				}
@@ -617,7 +617,7 @@ function initProbe(options, inputValues){
 		}
 
 
-		if(options.fillValues){
+		if (options.fillValues) {
 			await this.fillInputValues(element);
 		}
 	}
@@ -627,36 +627,40 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.getFormAsRequest = function(form){
+	Probe.prototype.getFormAsRequest = function (form) {
 
 		var formObj = {};
 		var inputs = null;
 		var par;
 
 		formObj.method = form.getAttribute("method");
-		if(!formObj.method){
+		if (!formObj.method) {
 			formObj.method = "GET";
 		} else {
 			formObj.method = formObj.method.toUpperCase();
 		}
 
 		formObj.url = form.getAttribute("action");
-		if(!formObj.url) formObj.url = document.location.href;
+		if (!formObj.url) formObj.url = document.location.href;
 		formObj.data = [];
 		inputs = form.querySelectorAll("input, select, textarea");
-		for(var a = 0; a < inputs.length; a++){
-			if(!inputs[a].name) continue;
+		for (var a = 0; a < inputs.length; a++) {
+			if (!inputs[a].name) continue;
 			par = encodeURIComponent(inputs[a].name) + "=" + encodeURIComponent(inputs[a].value);
-			if(inputs[a].tagName == "INPUT" && inputs[a].type != null){
+			if (inputs[a].tagName == "INPUT" && inputs[a].type != null) {
 
-				switch(inputs[a].type.toLowerCase()){
+				switch (inputs[a].type.toLowerCase()) {
 					case "button":
 					case "submit":
 						break;
 					case "checkbox":
 					case "radio":
-						if(inputs[a].checked)
+						if (inputs[a].checked)
 							formObj.data.push(par);
+						break;
+					case "file":
+						formObj.type = "file";
+						formObj.data.push(par + "@file");
 						break;
 					default:
 						formObj.data.push(par);
@@ -669,7 +673,7 @@ function initProbe(options, inputValues){
 
 		formObj.data = formObj.data.join("&");
 
-		if(formObj.method == "GET"){
+		if (formObj.method == "GET") {
 			var url = this.replaceUrlQuery(formObj.url, formObj.data);
 			req = new this.Request("form", "GET", url);
 		} else {
@@ -683,9 +687,9 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.addEventToMap = function(element, event){
-		for(var a = 0; a < this.eventsMap.length; a++){
-			if(this.eventsMap[a].element == element){
+	Probe.prototype.addEventToMap = function (element, event) {
+		for (var a = 0; a < this.eventsMap.length; a++) {
+			if (this.eventsMap[a].element == element) {
 				this.eventsMap[a].events.push(event);
 				return;
 			}
@@ -699,13 +703,13 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.dispatchProbeEvent = async function(name, params){
+	Probe.prototype.dispatchProbeEvent = async function (name, params) {
 		return await window.__htcrawl_probe_event__(name, params);
 	};
 
 
 
-	Probe.prototype.startAnalysis = async function(){
+	Probe.prototype.startAnalysis = async function () {
 		console.log("page initialized ");
 		var _this = this;
 		this.started_at = (new Date()).getTime();
@@ -715,7 +719,7 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.isContentDuplicated = function(cont){
+	Probe.prototype.isContentDuplicated = function (cont) {
 		return this.domModifications.indexOf(cont) != -1;
 
 		// for(let m of this.domModifications){
@@ -727,10 +731,10 @@ function initProbe(options, inputValues){
 
 	}
 
-	Probe.prototype.simhashDistance = function(s1, s2){
+	Probe.prototype.simhashDistance = function (s1, s2) {
 		var x = (s1 ^ s2) & ((1 << 64) - 1);
 		var ans = 0;
-		while(x){
+		while (x) {
 			ans += 1;
 			x &= x - 1;
 		}
@@ -741,10 +745,10 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.jsonpHook = function(node){
-		if(!(node instanceof HTMLElement) || !node.matches("script")) return;
+	Probe.prototype.jsonpHook = function (node) {
+		if (!(node instanceof HTMLElement) || !node.matches("script")) return;
 		var src = node.getAttribute("src");
-		if(!src) return;
+		if (!src) return;
 		var _this = this;
 
 
@@ -752,7 +756,7 @@ function initProbe(options, inputValues){
 		a.href = src;
 
 		// JSONP must have a querystring...
-		if(!a.search) return;
+		if (!a.search) return;
 
 		var req = new this.Request("jsonp", "GET", src, null, this.getTrigger());
 		node.__request = req;
@@ -761,9 +765,9 @@ function initProbe(options, inputValues){
 
 		this._pendingJsonp.push(node);
 
-		var ev = function(){
+		var ev = function () {
 			var i = _this._pendingJsonp.indexOf(node);
-			if(i == -1){
+			if (i == -1) {
 				// ERROR !!
 			} else {
 				_this._pendingJsonp.splice(i, 1);
@@ -788,28 +792,28 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.triggerWebsocketEvent = function(url){
+	Probe.prototype.triggerWebsocketEvent = function (url) {
 
-		var req  = new this.Request("websocket", "GET", url, null, this.getTrigger());
-		this.dispatchProbeEvent("websocket", { request: req});
-
-	}
-
-	Probe.prototype.triggerWebsocketMessageEvent = function(url, message){
-
-		var req  = new this.Request("websocket", "GET", url, null, null);
-		this.dispatchProbeEvent("websocketMessage", { request: req, message: message});
+		var req = new this.Request("websocket", "GET", url, null, this.getTrigger());
+		this.dispatchProbeEvent("websocket", { request: req });
 
 	}
 
-	Probe.prototype.triggerWebsocketSendEvent = async function(url, message){
-		var req  = new this.Request("websocket", "GET", url, null, null);
-		return await this.dispatchProbeEvent("websocketSend", { request: req, message: message});
+	Probe.prototype.triggerWebsocketMessageEvent = function (url, message) {
+
+		var req = new this.Request("websocket", "GET", url, null, null);
+		this.dispatchProbeEvent("websocketMessage", { request: req, message: message });
+
+	}
+
+	Probe.prototype.triggerWebsocketSendEvent = async function (url, message) {
+		var req = new this.Request("websocket", "GET", url, null, null);
+		return await this.dispatchProbeEvent("websocketSend", { request: req, message: message });
 
 	}
 
 
-	Probe.prototype.triggerFormSubmitEvent = function(form){
+	Probe.prototype.triggerFormSubmitEvent = function (form) {
 
 		var req = this.getFormAsRequest(form);
 		this.dispatchProbeEvent("formSubmit", {
@@ -820,7 +824,7 @@ function initProbe(options, inputValues){
 	}
 
 
-	Probe.prototype.triggerNavigationEvent = function(url, method, data){
+	Probe.prototype.triggerNavigationEvent = function (url, method, data) {
 		var req = null;
 		method = method || "GET";
 
@@ -837,14 +841,14 @@ function initProbe(options, inputValues){
 
 
 	// returns true if at least one request is performed
-	Probe.prototype.waitRequests = async function(requests){
+	Probe.prototype.waitRequests = async function (requests) {
 		var _this = this;
 		var reqPerformed = false;
-		return new Promise( (resolve, reject) => {
+		return new Promise((resolve, reject) => {
 			var timeout = _this.options.ajaxTimeout;
 
-			var t = _this.setInterval(function(){
-				if(timeout <= 0 || requests.length == 0){
+			var t = _this.setInterval(function () {
+				if (timeout <= 0 || requests.length == 0) {
 					clearInterval(t);
 					//console.log("waitajax reoslve()")
 					resolve(reqPerformed);
@@ -857,10 +861,10 @@ function initProbe(options, inputValues){
 	}
 
 
-	Probe.prototype.waitAjax = async function(){
+	Probe.prototype.waitAjax = async function () {
 		await this.waitRequests(this._pendingAjax);
-		if(this._pendingAjax.length > 0) {
-			for(let req of this._pendingAjax){
+		if (this._pendingAjax.length > 0) {
+			for (let req of this._pendingAjax) {
 				await this.dispatchProbeEvent("xhrCompleted", {
 					request: req.__request,
 					response: null,
@@ -871,10 +875,10 @@ function initProbe(options, inputValues){
 		this._pendingAjax = [];
 	}
 
-	Probe.prototype.waitJsonp = async function(){
+	Probe.prototype.waitJsonp = async function () {
 		await this.waitRequests(this._pendingJsonp);
-		if(this._pendingJsonp.length > 0) {
-			for(let req of this._pendingJsonp){
+		if (this._pendingJsonp.length > 0) {
+			for (let req of this._pendingJsonp) {
 				await this.dispatchProbeEvent("jsonpCompleted", {
 					request: req.__request,
 					response: null,
@@ -885,10 +889,10 @@ function initProbe(options, inputValues){
 		this._pendingJsonp = [];
 	}
 
-	Probe.prototype.waitFetch = async function(){
+	Probe.prototype.waitFetch = async function () {
 		await this.waitRequests(this._pendingFetch);
-		if(this._pendingFetch.length > 0) {
-			for(let req of this._pendingFetch){
+		if (this._pendingFetch.length > 0) {
+			for (let req of this._pendingFetch) {
 				await this.dispatchProbeEvent("fetchCompleted", {
 					request: req,
 					response: null,
@@ -899,22 +903,22 @@ function initProbe(options, inputValues){
 		this._pendingFetch = [];
 	}
 
-	Probe.prototype.waitWebsocket = async function(){
+	Probe.prototype.waitWebsocket = async function () {
 		await this.waitRequests(this._pendingWebsocket);
-		if(this._pendingWebsocket.length > 0) {
+		if (this._pendingWebsocket.length > 0) {
 			// @TODO handle request timeout
 		}
 		this._pendingWebsocket = [];
 	}
 
-	Probe.prototype.fetchHook = async function(originalFetch, url, options){
+	Probe.prototype.fetchHook = async function (originalFetch, url, options) {
 		var _this = this;
 		var method = options && 'method' in options ? options.method.toUpperCase() : "GET";
 		var data = options && 'body' in options ? options.body : null;
 		var trigger = this.getTrigger();
 		var extra_headers = {};
-		if(options  &&  options.headers && 'entries' in options.headers){
-			for(let h of options.headers.entries()){
+		if (options && options.headers && 'entries' in options.headers) {
+			for (let h of options.headers.entries()) {
 				extra_headers[h[0]] = h[1];
 			}
 		}
@@ -923,28 +927,28 @@ function initProbe(options, inputValues){
 		var uRet = await this.dispatchProbeEvent("fetch", {
 			request: request
 		});
-		if(!uRet){
-			return new Promise( (resolve, reject) => reject(new Error("rejected"))); // @TODO
+		if (!uRet) {
+			return new Promise((resolve, reject) => reject(new Error("rejected"))); // @TODO
 		}
 		this._pendingFetch.push(request);
 
-		return new Promise( (resolve, reject) => {
-			originalFetch(url, options).then( resp => {
+		return new Promise((resolve, reject) => {
+			originalFetch(url, options).then(resp => {
 				_this.dispatchProbeEvent("fetchCompleted", {
 					request: request,
 					//response: @ TODO
 				});
 				resolve(resp);
-			}).catch( e => {
+			}).catch(e => {
 				_this.dispatchProbeEvent("fetchCompleted", {
 					request: request,
 					response: null,
 					error: "error" // @TODO
 				});
 				reject(e);
-			}).finally( () => {
+			}).finally(() => {
 				var i = _this._pendingFetch.indexOf(request);
-				if(i == -1){
+				if (i == -1) {
 					//ERROR!!!
 				} else {
 					_this._pendingFetch.splice(i, 1);
@@ -953,32 +957,32 @@ function initProbe(options, inputValues){
 		})
 	}
 
-	Probe.prototype.xhrOpenHook = function(xhr, method, url){
+	Probe.prototype.xhrOpenHook = function (xhr, method, url) {
 		var _url = this.removeUrlParameter(url, "_");
 		xhr.__request = new window.__PROBE__.Request("xhr", method, _url, null, this.getTrigger());
 	}
 
 
-	Probe.prototype.xhrSendHook = async function(xhr, data){
+	Probe.prototype.xhrSendHook = async function (xhr, data) {
 		var _this = this;
 		xhr.__request.data = data;
 
 		var absurl = this.getAbsoluteUrl(xhr.__request.url);
-		for(var a = 0; a < options.excludedUrls.length; a++){
-			if(absurl.match(options.excludedUrls[a])){
+		for (var a = 0; a < options.excludedUrls.length; a++) {
+			if (absurl.match(options.excludedUrls[a])) {
 				xhr.__skipped = true;
 			}
 		}
 
 		// check if request has already been sent
 		var rk = xhr.__request.key();
-		if(this.sentAjax.indexOf(rk) != -1){
+		if (this.sentAjax.indexOf(rk) != -1) {
 			return;
 		}
 
 
 		// add to pending ajax before dispatchProbeEvent. Since dispatchProbeEvent can await for something (and take some time) we need to be sure that the current xhr is awaited from the main loop
-		if(!xhr.__skipped){
+		if (!xhr.__skipped) {
 			this._pendingAjax.push(xhr);
 		}
 
@@ -986,14 +990,14 @@ function initProbe(options, inputValues){
 			request: xhr.__request
 		});
 
-		if(!uRet){
+		if (!uRet) {
 			this._pendingAjax.splice(this._pendingAjax.indexOf(xhr), 1);
 			return false;
 		}
-		xhr.addEventListener("readystatechange", function ev(e){
-			if(xhr.readyState != 4) return;
+		xhr.addEventListener("readystatechange", function ev(e) {
+			if (xhr.readyState != 4) return;
 			var i = _this._pendingAjax.indexOf(xhr);
-			if(i == -1){
+			if (i == -1) {
 				//ERROR!!!
 			} else {
 				_this._pendingAjax.splice(i, 1);
@@ -1012,50 +1016,50 @@ function initProbe(options, inputValues){
 	}
 
 
-	Probe.prototype.websocketHook =  function(ws, url){
+	Probe.prototype.websocketHook = function (ws, url) {
 		var _this = this;
 		this.triggerWebsocketEvent(url);
 
-		var delFromPendings = function(){
+		var delFromPendings = function () {
 			const i = _this._pendingWebsocket.indexOf(ws);
-			if(i > -1){
+			if (i > -1) {
 				_this._pendingWebsocket.splice(i, 1);
 			}
 		}
 		ws.__originalSend = ws.send;
 		this._pendingWebsocket.push(ws);
-		ws.send = async function(message){
-			var uRet =  await _this.triggerWebsocketSendEvent(url, message);
-			if(!uRet){
+		ws.send = async function (message) {
+			var uRet = await _this.triggerWebsocketSendEvent(url, message);
+			if (!uRet) {
 				delFromPendings();
 				return false;
 			}
-			if(typeof uRet == "object"){
+			if (typeof uRet == "object") {
 				message = uRet.message;
 			}
 			return ws.__originalSend(message);
 		}
-		ws.addEventListener("message", function(message){
+		ws.addEventListener("message", function (message) {
 			_this.triggerWebsocketMessageEvent(url, message.data);
 			delFromPendings();
 		});
 	}
 
 
-	Probe.prototype.isAttachedToDOM = function(node){
+	Probe.prototype.isAttachedToDOM = function (node) {
 		var p = node;
-		while(p) {
-			if(p.nodeName.toLowerCase() == "html")
+		while (p) {
+			if (p.nodeName.toLowerCase() == "html")
 				return true;
 			p = p.parentNode;
 		}
 		return false;
 	};
 
-	Probe.prototype.getDetachedRootNode = function(node){
+	Probe.prototype.getDetachedRootNode = function (node) {
 		var p = node;
-		while(p.parentNode) {
-			if(p.parentNode.nodeName.toLowerCase() == "html")
+		while (p.parentNode) {
+			if (p.parentNode.nodeName.toLowerCase() == "html")
 				return null;
 			p = p.parentNode;
 		}
@@ -1065,10 +1069,10 @@ function initProbe(options, inputValues){
 
 
 
-	Probe.prototype.crawlDOM = async function(node, layer){
-		if(this._stop) return;
+	Probe.prototype.crawlDOM = async function (node, layer) {
+		if (this._stop) return;
 		layer = typeof layer != 'undefined' ? layer : 0;
-		if(layer == this.options.maximumRecursion){
+		if (layer == this.options.maximumRecursion) {
 			console.log(">>>>RECURSON LIMIT REACHED :" + layer)
 			return;
 		}
@@ -1080,59 +1084,77 @@ function initProbe(options, inputValues){
 		await this.initializeElement(node);
 
 		//if(node == document){
-		if(layer == 0){
+		if (layer == 0) {
 			await this.dispatchProbeEvent("start");
 		}
 
 		//let analyzed = 0;
-		for(let el of dom){
-			if(this._stop) return;
+		for (let el of dom) {
+			if (this._stop) return;
 			let elsel = this.getElementSelector(el);
-			if(!this.isAttachedToDOM(el)){
+			if (!this.isAttachedToDOM(el)) {
 				console.log("!!00>>> " + this.stringifyElement(el) + " detached before analysis !!! results may be incomplete")
 				uRet = await this.dispatchProbeEvent("earlydetach", { node: elsel });
-				if(!uRet) continue;
+				if (!uRet) continue;
 			}
-			for(let event of this.getEventsForElement(el)){
-				if(this._stop) return;
+
+			if (this.options.eventCache) {
+				let res;
+				let evtstr = this.elEvtTostr(el)
+				if (evtstr) {
+					try {
+						res = await req("http://127.0.0.1:21218/_eventCacheSet", { method: 'PUT', timeout: 200, json: true, body: { evtstr: evtstr } })
+					} catch (error) {
+						log("req err:", error, error.toString())
+					}
+					switch (res.statusCode) {
+						case 200:
+							log("[*filter] element:", evtstr)
+							return
+							break;
+						case 455:
+					}
+				}
+			}
+			for (let event of this.getEventsForElement(el)) {
+				if (this._stop) return;
 				//console.log("analyze element " + this.describeElement(el));
 				this.takeDOMSnapshot();
-				if(options.triggerEvents){
-					uRet = await this.dispatchProbeEvent("triggerevent", {node: elsel, event: event});
-					if(!uRet) continue;
+				if (options.triggerEvents) {
+					uRet = await this.dispatchProbeEvent("triggerevent", { node: elsel, event: event });
+					if (!uRet) continue;
 
 					this.triggerElementEvent(el, event);
 					// if click has been trigered stop mousedown /up !!!
-
-					await this.dispatchProbeEvent("eventtriggered", {node: elsel, event: event});
+					await this.dispatchProbeEvent("eventtriggered", { node: elsel, event: event });
 				}
 
-				if(this._pendingAjax.length > 0) {
+				if (this._pendingAjax.length > 0) {
 					let chainLimit = this.options.maximumAjaxChain;
 					do {
 						chainLimit--;
-						if(chainLimit == 0){
+						if (chainLimit == 0) {
 							break;
 						}
 						await this.sleep(0);
-					} while(await this.waitAjax());
+					} while (await this.waitAjax());
 				}
 
-				if(this._pendingFetch.length > 0)
+				if (this._pendingFetch.length > 0)
 					await this.waitFetch();
-				if(this._pendingJsonp.length > 0)
+				if (this._pendingJsonp.length > 0)
 					await this.waitJsonp();
-				if(this._pendingWebsocket.length > 0)
+				if (this._pendingWebsocket.length > 0)
 					await this.waitWebsocket();
 
 				newEls = this.getAddedElements();
-				for(var a = newEls.length - 1; a >= 0; a--){
-					if(newEls[a].innerText && this.isContentDuplicated(newEls[a].innerText))
-						newEls.splice(a,1);
+				for (var a = newEls.length - 1; a >= 0; a--) {
+					if (newEls[a].innerText && this.isContentDuplicated(newEls[a].innerText))
+						newEls.splice(a, 1);
 				}
-				if(newEls.length > 0){
-					for(var a = 0; a < newEls.length; a++){
-						if(newEls[a].innerText){
+				if (newEls.length > 0) {
+					for (var a = 0; a < newEls.length; a++) {
+						if (newEls[a].innerText) {
 							this.domModifications.push(newEls[a].innerText);
 							//this.domModifications.push(this.textComparator.getValue(newEls[a].innerText));
 							console.log(this.textComparator.getValue(newEls[a].innerText))
@@ -1140,30 +1162,33 @@ function initProbe(options, inputValues){
 					}
 
 					//console.log("added elements " + newEls.length)
-					for(let ne of newEls){
+					for (let ne of newEls) {
 						uRet = await this.dispatchProbeEvent("newdom", {
 							rootNode: this.describeElement(ne),
 							trigger: this.getTrigger(),
 							layer: layer
 						});
-						if(uRet)
+						if (uRet)
 							await this.crawlDOM(ne, layer + 1);
 					}
-
 				}
 			}
-
 		}
 	}
 
-	Probe.prototype.sleep = function(n){
+
+	Probe.prototype.sleep = function (n) {
 		var _this = this;
 		return new Promise(resolve => {
 			_this.setTimeout(resolve, n);
 		});
 	};
 
-
+	Probe.prototype.elEvtTostr = function (el) {
+		if (el.innerHTML == "" || el.nodeName == "SCRIPT")
+			return ""
+		return `'${this.getElementSelector(el)}, ${el.nodeName},${btoa(unescape(encodeURIComponent(el.innerText)))}'`
+	}
 
 	window.__PROBE__ = new Probe(options, inputValues);
 };

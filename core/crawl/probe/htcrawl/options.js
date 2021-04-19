@@ -9,6 +9,7 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 */
 
+
 exports.options = {
 	id: 0,
 	threadnum: 3,
@@ -67,6 +68,7 @@ exports.options = {
 		'tr': ['click', 'dblclick', 'mouseup', 'mousedown'],
 		'div': ['click', 'dblclick', 'mouseup', 'mousedown']
 	},
+	eventCache : true,
 	proxy: null,
 	loadWithPost: false,
 	postData: null,

@@ -2,6 +2,7 @@ const net = require('net');
 const path_util = require("path");
 const http = require('http');
 const Koa = require('koa');
+const koaBody = require('koa-body');
 const Router = require('@koa/router');
 const uniQueue = require("./uniQueue.js");
 const { formatURL, sleep } = require('./utils.js');
@@ -161,9 +162,10 @@ class httpIO extends io {
          * @type {Object.<string, string>} result_dic {url:result}
          * @protected
          */
-        this._result_dic = {}
+        this._result_dic = {};
+        this._eventCacheSet = new Set();
         this.output = (msg) => {
-            this._result_dic[msg["url"]] = msg
+            this._result_dic[msg["url"]] = msg;
         }
         this.server = this.listen();
     }
@@ -172,6 +174,8 @@ class httpIO extends io {
         const r = new Router();
 
         r.get('/url/:urlencode_url', async (ctx, next) => {
+            await next()
+
             let targeturl = formatURL(decodeURIComponent(ctx.params.urlencode_url))
             if (targeturl == "") {
                 ctx.body = "url is not vaild"
@@ -190,7 +194,7 @@ class httpIO extends io {
                     if (targeturl in this._result_dic) {
                         res = this._result_dic[targeturl];
                         if (res["errors"] != "") {
-                            console.error(`err in ${res.url}:${JSON.stringify(res)}`)
+                            console.error(`err in ${res.url} res:${JSON.stringify(res)}`)
                         }
                         ctx.status = 200
                         break;
@@ -203,13 +207,41 @@ class httpIO extends io {
         });
 
         r.get("/_result_dic", async (ctx, next) => {
+            await next()
+
             ctx.body = this._result_dic;
             ctx.status = 200;
         })
 
         r.get("/_clean_res_cache", async (ctx, next) => {
+            await next()
+
             this._result_dic = {};
             ctx.status = 200;
+        })
+
+        r.get("/_eventCacheSet", async (ctx, next) => {
+            await next()
+
+            ctx.body = this._eventCacheSet.size;
+            ctx.status = 200;
+        })
+
+        r.put("/_eventCacheSet", async (ctx, next) => {
+            await next()
+
+            let evtstr = ctx.request.body["evtstr"] || "";
+            if (!evtstr) {
+                ctx.status = 455;
+                return
+            }
+            
+            if (this._eventCacheSet.has(evtstr)) {
+                ctx.status = 200;
+            } else {
+                this._eventCacheSet.add(evtstr);
+                ctx.status = 455;
+            }
         })
 
         return r
@@ -217,6 +249,7 @@ class httpIO extends io {
 
     listen() {
         const app = new Koa();
+        app.use(koaBody());
         const r = this.router();
         app.use(r.routes())
             .use(r.allowedMethods());

@@ -13,6 +13,7 @@ version.
 
 const fs = require("fs");
 const os = require('os');
+const request = require('request');
 const urlparse = require('url');
 const path = require('path');
 const process = require('process');
@@ -66,7 +67,7 @@ exports.NewCrawler = async function (options) {
 	try {
 		// setRequestInterception
 		await page.setRequestInterception(true);
-		// page.on('console', consoleObj => console.log("==>browser.console:",consoleObj.text()));
+		//page.on('console', consoleObj => console.log("==>browser.console:", consoleObj.text()));
 		page.setDefaultNavigationTimeout(options.maxExecTime);
 		await page.setViewport({ width: 1366, height: 768, });
 
@@ -115,12 +116,18 @@ exports.NewCrawler = async function (options) {
 
 
 class Crawler {
+	/**
+ * @constructs Crawler
+ * @param options {Object}
+ * @param browser {puppeteer.Browser}
+ * @param page {puppeteer.Page}
+ */
 	constructor(options, browser, page) {
 		this._redirect = null;
 		this._allowNavigation = false;
 		this.options = options;
 		this._browser = browser;
-		this._page = page;
+		this._page = page;// puppeteer.Page
 		this.publicProbeMethods = [];
 		this._cookies = [];
 		this._errors = [];
@@ -303,7 +310,21 @@ class Crawler {
 			await page.exposeFunction("__htcrawl_probe_event__", (name, params) => {
 				return this.dispatchProbeEvent(name, params)
 			}); // <- automatically awaited.."If the puppeteerFunction returns a Promise, it will be awaited."
+			await page.exposeFunction('req', async (url, options) => {
+				return new Promise((reslove, reject) => {
+					request(url, options, (err, res) => {
+						if (err) {
+							reject(err);
+						}
+						reslove(res);
+					})
+				})
+			})
+			await page.exposeFunction('log', (...args) => {
+				console.error(...args);
+			})
 		}
+
 
 		let inputValues = utils.generateRandomValues(this.options.randomSeed);
 		await page.evaluateOnNewDocument(probe.initProbe, this.options, inputValues);
@@ -314,8 +335,7 @@ class Crawler {
 	navigate = async (url) => {
 		for (let exurl of this.options.excludedUrls) {
 			if (url.match(exurl)) {
-				console.log(`[*filter] ${url} fliter by options -x`)
-				return
+				throw (`[*filter] ${url} filter by options -x`)
 			}
 		}
 		await this.inject(this.page());
@@ -369,6 +389,7 @@ class Crawler {
 	};
 
 	analyze = async (targetUrl) => {
+
 		async function exit() {
 			//await sleep(1000000)
 			clearTimeout(execTO);
@@ -387,6 +408,7 @@ class Crawler {
 		async function end() {
 			if (endRequested) return;
 			endRequested = true;
+
 			if (domLoaded && !that.redirect()) {
 				const hash = await getPageText(page);
 				out.print_log("page_hash", JSON.stringify(hash));
@@ -400,30 +422,7 @@ class Crawler {
 			await exit();
 		}
 
-		async function loginErr(message, seqline) {
-			if (seqline) {
-				message = "action " + seqline + ": " + message;
-			}
-			crawler.errors().push(["login_sequence", message]);
-			await end();
-		}
-
-		async function isLogged(page, condition) {
-			const text = await page.content();
-			const regexp = new RegExp(condition, "gi");
-			return text.match(regexp) != null;
-		}
-
-		async function getElement(selector, page) {
-			selector = selector.trim();
-			if (selector.startsWith("$")) {
-				let e = await page.$x(selector.substring(1));
-				return e.length > 0 ? e[0] : null;
-			}
-
-			return await page.$(selector);
-		}
-
+		this._errors = [];
 		let that = this;
 		let page = that.page();
 		that.browser().on("targetcreated", async (target) => {
@@ -461,7 +460,6 @@ class Crawler {
 
 		let domLoaded = false;
 		let endRequested = false;
-		let loginSeq = 'loginSequence' in this.options ? this.options.loginSequence : false;
 		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
 
 		if (!this.options.outputFunc)
@@ -474,12 +472,19 @@ class Crawler {
 		try {
 			await this.navigate(targetUrl);
 		} catch (e) {
+			if (e.toString().indexOf("Navigation timeout") > -1) {
+				console.error(e)
+				end()
+			}
+			if (e.toString().indexOf("filter by options -x") > -1) {
+				console.log(e)
+				this._errors = [];
+				return out.printStatus(that)
+			}
+
 			console.error("error in navigate ", targetUrl, e)
 			// clear previrous errors
 			this._errors.push(e)
-			if (e.message.search("Navigation timeout") != -1) {
-				end()
-			}
 			return out.printStatus(that)
 		}
 
@@ -487,8 +492,8 @@ class Crawler {
 
 		// set analyze single page timeout
 		let execTO = setTimeout(function () {
-			crawler.errors().push(["probe_timeout", "maximum execution time reached"]);
-			end();
+			// this.errors().push(["probe_timeout", "maximum execution time reached"]);
+			// end();
 		}, this.options.maxExecTime);
 
 		if (this.options.localStorage) {

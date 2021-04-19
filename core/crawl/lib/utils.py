@@ -16,6 +16,7 @@ import json
 import requests as req
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from urllib.parse import urlparse
 import re
 import logging
 from core.crawl.lib.probe import Probe
@@ -138,6 +139,17 @@ class ProbeExecutor:
 
     def execute(self, process_timeout=180) -> Probe:
         url = self.request.url
+        path = urlparse(url).path
+
+        if path in Shared.probe_req_path:
+            if Shared.probe_req_path[path] > Shared.max_probe_path:
+                log.debug(
+                    "  [*filter] req placeholder GET %s filter by probe_req_path"
+                    % url)
+                return
+            Shared.probe_req_path[path] += 1
+        else:
+            Shared.probe_req_path[path] = 1
 
         if url in Shared.probed_req_urls:
             log.debug(
@@ -197,5 +209,5 @@ def probe_http(url: str, timeout: int) -> str:
     if res.status_code == 200:
         return res.text
     else:
-        print(res.content)
+        log.error("err in res:%s" % res.content)
         return ""

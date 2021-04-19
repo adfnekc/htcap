@@ -19,6 +19,7 @@ import logging
 import uuid
 import subprocess
 from urllib.parse import urlsplit
+from core.lib.progressbar import Progressbar
 import urllib.request
 import urllib.error
 import urllib.parse

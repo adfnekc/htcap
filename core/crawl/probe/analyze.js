@@ -27,7 +27,7 @@ async function main() {
 
 	let options = utils.getOptionsFromCMD();
 
-	let socket = new io(11218);
+	let socket = new io(21218);
 	options.outputFunc = (msg) => {
 		socket.send(msg);
 	}

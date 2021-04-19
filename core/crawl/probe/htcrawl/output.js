@@ -107,7 +107,7 @@ module.exports = class output {
 
         formObj.method = await (await frm.getProperty("method")).jsonValue();
         if (formObj.method.toUpperCase() == "POST" && formObj.type == "form") {
-            debugger;
+            // debugger;
         }
 
         if (!formObj.method) {

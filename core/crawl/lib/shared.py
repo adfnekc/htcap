@@ -25,13 +25,17 @@ class Shared:
     crawl_results = []
 
     starturl = ""
+    process_timeout = 180
     start_cookies = []
     allowed_domains = set()
     excluded_urls = set()
+    # set of probed url
     probed_req_urls = set()
-    process_timeout = 180
+    # dic of req path
+    probe_req_path = {}
+    max_probe_path = 10
 
     options = {}
     probe_cmd = ""
 
-    node_host = "127.0.0.1:11218"
+    node_host = "127.0.0.1:21218"
