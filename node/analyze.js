@@ -13,7 +13,7 @@ version.
 "use strict";
 
 const utils = require('./utils');
-const htcrawl = require("./htcrawl");
+const htcrawl = require("./htcrawl/main.js");
 const io = require("./exchangeMsg").httpIO;
 
 main();
