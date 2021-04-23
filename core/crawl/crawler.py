@@ -649,7 +649,8 @@ class Crawler:
         try:
             self.kill_threads(threads)
             node_process.kill()
-            os.remove(cookie_file)
+            if cookie_file != "":
+                os.remove(cookie_file)
         except Exception as e:
             log.error("process terminate err:%s" % e)
 
@@ -665,7 +666,7 @@ class Crawler:
 def start_node(cmd: List[str],
                cookieList: List[Cookie] = None) -> (subprocess.Popen, str):
     cookieList = [c for c in cookieList if c.is_valid_for_url(Shared.starturl)]
-    cookie_file = "/tmp/htcap_cookie_%s.json" % (uuid.uuid4())
+    cookie_file = ""
 
     cookies = []
     if len(cookieList) > 0:
@@ -675,7 +676,7 @@ def start_node(cmd: List[str],
                 purl = urlsplit(Shared.starturl)
                 cookie['domain'] = purl.netloc.split(":")[0]
             cookies.append(cookie)
-
+        cookie_file = "/tmp/htcap_cookie_%s.json" % (uuid.uuid4())
         log.debug("cookie:%s write to file <%s>" % (cookies, cookie_file))
         with open(cookie_file, 'w') as fil:
             fil.write(json.dumps(cookies))
