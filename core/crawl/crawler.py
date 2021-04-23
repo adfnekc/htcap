@@ -259,8 +259,8 @@ class Crawler:
                         t for t in threads if t.status == THSTAT_RUNNING
                     ]
                     if len(running_threads) == 0:
-                        if self.display_progress or self.verbose:
-                            print("no running_threads")
+                        # if self.display_progress or self.verbose:
+                        #     print("no running_threads")
                         break
 
                 if len(req_to_crawl) > 0:
@@ -523,7 +523,7 @@ class Crawler:
                 }
 
         probe_cmd = get_node_cmd()
-        if not probe_cmd:  # maybe useless
+        if not probe_cmd or probe_cmd[0] is None:
             print("Error: unable to find node executable")
             sys.exit(1)
 
@@ -554,7 +554,7 @@ class Crawler:
         if not Shared.options['headless_chrome']:
             probe_options.append("-l")
 
-        probe_cmd.append(os.path.join(self.base_dir, 'probe', 'analyze.js'))
+        probe_cmd.append(os.path.abspath(os.path.join('./', 'node', 'analyze.js')))
 
         if len(Shared.excluded_urls) > 0:
             probe_options.extend(("-X", ",".join(Shared.excluded_urls)))
@@ -653,7 +653,7 @@ class Crawler:
 
         self.crawl_end_time = int(time.time())
 
-        print("Crawl finished, %d pages analyzed in %d minutes" %
+        print("\r\nCrawl finished, %d pages analyzed in %d minutes" %
               (Shared.requests_index,
                (self.crawl_end_time - self.crawl_start_time) // 60))
 
@@ -687,6 +687,7 @@ def start_node(cmd: List[str],
                                         text=True,
                                         cwd=os.path.dirname(cmd[1]))
         log.debug("cmd:%s,cwd:%s" % (cmd, os.path.dirname(cmd[1])))
+        time.sleep(0.5)
         r_code = node_process.poll()
         if r_code is not None:
             raise Exception(

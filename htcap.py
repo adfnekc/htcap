@@ -56,7 +56,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s :%(message)s',
                         level=logging.DEBUG,
                         datefmt='%m/%d/%Y %I:%M:%S %p',
-                        filename='./log/app.log')
+                        filename='./log/app.log',
+                        filemode='w+')
 
     log = logging.getLogger('htcap')
 
