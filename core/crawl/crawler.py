@@ -554,7 +554,8 @@ class Crawler:
         if not Shared.options['headless_chrome']:
             probe_options.append("-l")
 
-        probe_cmd.append(os.path.abspath(os.path.join('./', 'node', 'analyze.js')))
+        probe_cmd.append(
+            os.path.abspath(os.path.join('./', 'node', 'analyze.js')))
 
         if len(Shared.excluded_urls) > 0:
             probe_options.extend(("-X", ",".join(Shared.excluded_urls)))
@@ -663,8 +664,6 @@ class Crawler:
 def start_node(cmd: List[str],
                cookieList: List[Cookie] = None) -> (subprocess.Popen, str):
     cookieList = [c for c in cookieList if c.is_valid_for_url(Shared.starturl)]
-    cookie_file = "/tmp/htcap_cookie_%s.json" % (uuid.uuid4())
-
     cookies = []
     if len(cookieList) > 0:
         for c in cookieList:
@@ -675,10 +674,11 @@ def start_node(cmd: List[str],
             cookies.append(cookie)
 
         log.debug("cookie:%s write to file <%s>" % (cookies, cookie_file))
+        cookie_file = "/tmp/htcap_cookie_%s.json" % (uuid.uuid4())
         with open(cookie_file, 'w') as fil:
             fil.write(json.dumps(cookies))
+        cmd.extend(["-c", cookie_file])
 
-    cmd.extend(["-c", cookie_file])
     f = open("./log/node.log", "w+")
     try:
         node_process = subprocess.Popen(cmd,
