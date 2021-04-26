@@ -139,8 +139,7 @@ class Crawler:
             "  -l               do not run chrome in headless mode\n"
             "  -E HEADER        set extra http headers (ex -E foo=bar -E bar=foo)\n"
             "  -g KEY/VALUE     set browser's Local/Session storaGe (ex -g L:foo=bar -g S:bar=foo)\n"
-            "  -M               don't simulate real mouse/keyboard events\n"
-            "  -L SEQUENCE      set login sequence\n"))
+            "  -M               don't simulate real mouse/keyboard events\n"))
 
     def generate_filename(self, name, out_file_overwrite):
         fname = generate_filename(name, None, out_file_overwrite)
@@ -494,19 +493,6 @@ class Crawler:
                     Shared.options['extra_headers'] = {}
                 (hn, hv) = v.split("=", 1)
                 Shared.options['extra_headers'][hn] = hv
-            elif o == "-L":
-                try:
-                    with open(v) as cf:
-                        Shared.options['login_sequence'] = json.loads(
-                            cf.read())
-                        Shared.options['login_sequence'][
-                            "__file__"] = os.path.abspath(v)
-                except ValueError as e:
-                    print("* ERROR: decoding login sequence" + e)
-                    sys.exit(1)
-                except Exception as e:
-                    print("* ERROR: login sequence file not found" + e)
-                    sys.exit(1)
             elif o == "-g":
                 if not Shared.options['local_storage']:
                     Shared.options['local_storage'] = {}

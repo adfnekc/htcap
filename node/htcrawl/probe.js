@@ -1107,12 +1107,14 @@ function initProbe(options, inputValues) {
 					} catch (error) {
 						log("req err:", error, error.toString())
 					}
-					switch (res.statusCode) {
-						case 200:
-							log("[*filter] element:", evtstr)
-							return
-							break;
-						case 455:
+					if ('statusCode' in res) {
+						switch (res.statusCode) {
+							case 200:
+								log("[*filter] element:", evtstr)
+								return
+								break;
+							case 455:
+						}
 					}
 				}
 			}
@@ -1185,7 +1187,7 @@ function initProbe(options, inputValues) {
 	};
 
 	Probe.prototype.elEvtTostr = function (el) {
-		if (el.innerHTML == "" || el.nodeName == "SCRIPT")
+		if (el.innerText == "" || el.nodeName == "SCRIPT")
 			return ""
 		return `'${this.getElementSelector(el)}, ${el.nodeName},${btoa(unescape(encodeURIComponent(el.innerText)))}'`
 	}

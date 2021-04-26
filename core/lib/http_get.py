@@ -42,11 +42,13 @@ class HttpGet:
                 "user-agent": self.useragent,
             }
             headers.update(self.extra_headers)
+
+            print(self.request.cookies, type(self.request.cookies))
             res = reqlib.request(method=self.request.method,
                                  url=self.request.url,
                                  verify=False,
                                  timeout=self.timeout,
-                                 cookies=self.request.cookies,
+                                 cookies=toReqCok(self.request.cookies),
                                  proxies=self.proxy)
         except Exception as e:
             raise e
@@ -101,3 +103,10 @@ class HttpGet:
         except Exception as e:
             raise e
         return res.text()
+
+
+def toReqCok(cookies: list):
+    c = {}
+    for cookie in cookies:
+        c[cookie.name] = cookie.value
+    return c
