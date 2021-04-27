@@ -178,14 +178,14 @@ class httpIO extends io {
 
             let targeturl = formatURL(decodeURIComponent(ctx.params.urlencode_url))
             if (targeturl == "") {
-                ctx.body = "url is not vaild"
-                ctx.status = 421
+                ctx.body = "url is not vaild";
+                ctx.status = 422;
                 return
             }
             this.input(targeturl);
             ctx.body = await (async () => {
                 let res = "";
-                ctx.status = 421
+                ctx.status = 504;
                 let flag = true;
                 setTimeout(() => {
                     flag = false;

@@ -18,6 +18,7 @@ import re
 import logging
 import uuid
 import subprocess
+import tempfile
 from urllib.parse import urlsplit
 from core.lib.progressbar import Progressbar
 import urllib.request
@@ -662,7 +663,8 @@ def start_node(cmd: List[str],
                 purl = urlsplit(Shared.starturl)
                 cookie['domain'] = purl.netloc.split(":")[0]
             cookies.append(cookie)
-        cookie_file = "/tmp/htcap_cookie_%s.json" % (uuid.uuid4())
+        cookie_file = os.path.join(tempfile.gettempdir(),
+                                   "htcap_cookie_%s.json" % (uuid.uuid4()))
         log.debug("cookie:%s write to file <%s>" % (cookies, cookie_file))
         with open(cookie_file, 'w') as fil:
             fil.write(json.dumps(cookies))
