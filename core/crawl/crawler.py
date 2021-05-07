@@ -140,7 +140,9 @@ class Crawler:
             "  -l               do not run chrome in headless mode\n"
             "  -E HEADER        set extra http headers (ex -E foo=bar -E bar=foo)\n"
             "  -g KEY/VALUE     set browser's Local/Session storaGe (ex -g L:foo=bar -g S:bar=foo)\n"
-            "  -M               don't simulate real mouse/keyboard events\n"))
+            "  -M               don't simulate real mouse/keyboard events\n"
+            "  -Q repeatTimes   set group url max repeat times , Shared.max_probe_path"
+        ))
 
     def generate_filename(self, name, out_file_overwrite):
         fname = generate_filename(name, None, out_file_overwrite)
@@ -398,7 +400,7 @@ class Crawler:
 
         try:
             opts, args = getopt.getopt(
-                argv, 'hc:t:jn:x:A:p:d:BGR:U:wD:s:m:C:qr:SIHFP:OvelE:L:Mg:')
+                argv, 'hc:t:jn:x:A:p:d:BGR:U:wD:s:m:C:qr:SIHFP:OvelE:L:Mg:Q:')
         except getopt.GetoptError as err:
             print("GetoptError", str(err))
             sys.exit(1)
@@ -508,6 +510,8 @@ class Crawler:
                     "type": ktks[0],
                     "value": hv
                 }
+            elif o == '-Q':
+                Shared.max_probe_path = int(v)
 
         probe_cmd = get_node_cmd()
         if not probe_cmd or probe_cmd[0] is None:

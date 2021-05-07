@@ -9,12 +9,15 @@ Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
+import logging
 import requests as reqlib
 from core.crawl.lib.urlfinder import get_urls
 from core.lib.exception import *
 from core.lib.request import Request
 from core.lib.utils import *
 from core.constants import *
+
+log = logging.getLogger('htcap')
 
 
 class HttpGet:
@@ -43,7 +46,6 @@ class HttpGet:
             }
             headers.update(self.extra_headers)
 
-            print(self.request.cookies, type(self.request.cookies))
             res = reqlib.request(method=self.request.method,
                                  url=self.request.url,
                                  verify=False,
@@ -53,8 +55,8 @@ class HttpGet:
         except Exception as e:
             raise e
 
-        print("HttpGet get_requests ===>", self.request.url, res.status_code,
-              len(res.text))
+        log.debug("HttpGet get_requests ===> %s,%d,%d" %
+                  (self.request.url, res.status_code, len(res.text)))
 
         if res.headers["content-type"] is not None and res.headers[
                 'content-type'].lower().split(";")[0] != "text/html":
