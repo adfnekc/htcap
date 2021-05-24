@@ -21,6 +21,7 @@ CRAWLMODE_ACTIVE = "active"
 CRAWLMODE_AGGRESSIVE = "aggressive"
 
 REQTYPE_LINK = "link"
+REQTYPE_FRAME = "frame"
 REQTYPE_REDIRECT = "redirect"
 REQTYPE_NAV = "navigation"
 REQTYPE_XHR = "xhr"

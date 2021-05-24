@@ -481,8 +481,10 @@ function initProbe(options, inputValues) {
 	};
 
 	Probe.prototype.getEventsForElement = function (element) {
-		var events = [];
 		var map;
+		var events = [];
+		if (!element)
+			return events;
 
 		if (this.options.triggerAllMappedEvents) {
 			map = this.eventsMap;
@@ -1105,7 +1107,8 @@ function initProbe(options, inputValues) {
 					try {
 						res = await req("http://127.0.0.1:21218/_eventCacheSet", { method: 'PUT', timeout: 200, json: true, body: { evtstr: evtstr } })
 					} catch (error) {
-						log("req err:", error, error.toString())
+						log("req err:", error, error.toString());
+						throw error;
 					}
 					if ('statusCode' in res) {
 						switch (res.statusCode) {

@@ -24,6 +24,7 @@ const output = require("./output");
 const defaults = require('./options').options;
 const { utils, RequestModel } = require('./utils');
 const probeTextComparator = require("./shingleprint");
+const { sleep } = require("../utils");
 
 
 
@@ -179,7 +180,11 @@ class Crawler {
 		};
 	};
 
+	/***
+	 * @param resp {puppeteer.Response}
+	 */
 	_afterNavigation = async (resp) => {
+		// console.log(await resp.text());
 		// return if resp is null
 		if (!resp) {
 			return
@@ -210,7 +215,7 @@ class Crawler {
 				throw "Content type is not text/html";
 			}
 
-			await _this._page.evaluate(async function () {
+			await this.page().evaluate(async function () {
 				window.__PROBE__.takeDOMSnapshot();
 			});
 
@@ -266,14 +271,38 @@ class Crawler {
 				console.log("startAnalysis");
 				await window.__PROBE__.startAnalysis();
 			});
-			return _this;
+
 		} catch (e) {
 			console.log(e);
-			_this._errors.push(["navigation", "" + e]);
-			//_this.dispatchProbeEvent("end", {});
+			_this._errors.push(["startAnalysis", "" + e]);
 			throw e;
 		};
+
+		try {
+			await this.dumpFrameTree(this.page().mainFrame());
+		} catch (e) {
+			console.log(e);
+			_this._errors.push(["analysis frame", "" + e]);
+			throw e;
+		};
+
+		return _this;
 	};
+
+	/**
+	 * @param frame {puppeteer.Frame}
+	 */
+	async dumpFrameTree(frame) {
+		console.error(frame.url());
+		this.out.printRequest(RequestModel(frame.url(), "frame", "GET"));
+		await frame.evaluate(async function (url, name) {
+			log("frame analysis", url, name);
+			await window.__PROBE__.startAnalysis();
+		}, frame.url(), frame.name());
+		for (let child of frame.childFrames())
+			await this.dumpFrameTree(child);
+	}
+
 
 	stop = async () => {
 		await this._page.evaluate(() => {
@@ -300,6 +329,9 @@ class Crawler {
 		})
 	};
 
+	/***
+	 * @param page {puppeteer.Page}
+	 */
 	inject = async () => {
 		let page = this._page;
 		let injected = await page.evaluate(async () => {
@@ -389,7 +421,6 @@ class Crawler {
 	};
 
 	analyze = async (targetUrl) => {
-
 		async function exit() {
 			//await sleep(1000000)
 			clearTimeout(execTO);
@@ -417,8 +448,6 @@ class Crawler {
 					out.print_log("html", JSON.stringify(hash));
 				}
 			}
-
-			await out.printStatus(that);
 			await exit();
 		}
 
@@ -458,6 +487,14 @@ class Crawler {
 			}
 		});
 
+		page.on('frameattached', async (frame) => {
+			// console.log(frame);
+		})
+
+		page.on('response', (resp) => {
+			//console.log("resp:", resp.url(), resp._request._resourceType);
+		})
+
 		let domLoaded = false;
 		let endRequested = false;
 		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
@@ -466,6 +503,7 @@ class Crawler {
 			console.log("options.outputFunc not set")
 		let outputFunc = this.options.outputFunc ? this.options.outputFunc : (msgs) => { console.log("@&=> msgs:", msgs) };
 		let out = new output(outputFunc);
+		this.out = out;
 		out.print_url(targetUrl);
 		this.monitorEvent(out);
 
@@ -506,18 +544,8 @@ class Crawler {
 		}
 
 		// scroll page
-		await (async (page) => {
-			await page.evaluate(async function () {
-				let pageHeight = () => { return document.body.scrollHeight; };
-				let scrollTop = () => { return window.pageYOffset || document.documentElement.scrollTop };
-				let windowHeight = () => { return window.innerHeight };
-				while (pageHeight() - 60 > scrollTop() + windowHeight()) {
-					window.scrollTo(0, window.pageYOffset + 60);
-					console.log(pageHeight(), scrollTop(), windowHeight())
-					await window.__PROBE__.sleep(60);
-				}
-			})
-		})(page);
+		await this.scroll();
+
 
 		try {
 			if (!this.options.doNotCrawl) {
@@ -613,7 +641,6 @@ class Crawler {
 
 		this.on("xhr", async function (e, crawler) {
 			out.printRequest(e.params.request)
-
 			//return false
 		});
 
@@ -650,4 +677,19 @@ class Crawler {
 			//crawler.browser().close();
 		});
 	}
+
+	scroll = async () => {
+		let page = this.page();
+		await page.evaluate(async function () {
+			const scrollHeight = 320;
+			let pageHeight = () => { return document.body.scrollHeight; };
+			let scrollTop = () => { return window.pageYOffset || document.documentElement.scrollTop };
+			let windowHeight = () => { return window.innerHeight };
+			while (pageHeight() - scrollHeight > scrollTop() + windowHeight()) {
+				window.scrollTo(0, window.pageYOffset + scrollHeight);
+				console.log(pageHeight(), scrollTop(), windowHeight())
+				await window.__PROBE__.sleep(60);
+			}
+		})
+	};
 };
