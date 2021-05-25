@@ -53,13 +53,15 @@ def usage():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s :%(message)s',
+    logging.basicConfig(format='%(name)s|%(asctime)s :%(message)s',
                         level=logging.DEBUG,
                         datefmt='%m/%d/%Y %I:%M:%S %p',
                         filename='./log/app.log',
                         filemode='w+')
-
-    log = logging.getLogger('htcap')
+    logging.getLogger("requests").setLevel(logging.CRITICAL)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.CRITICAL)
+    logging.getLogger("urllib3.util.retry").setLevel(logging.CRITICAL)
+    log = logging.Logger('htcap')
 
     node_dir = os.path.join(getrealdir(__file__), 'core', 'nodejs')
     env_sep = ':' if sys.platform != "win32" else ';'

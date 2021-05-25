@@ -293,7 +293,7 @@ class Crawler {
 	 * @param frame {puppeteer.Frame}
 	 */
 	async dumpFrameTree(frame) {
-		console.error(frame.url());
+		console.error("frame:", frame.url());
 		this.out.printRequest(RequestModel(frame.url(), "frame", "GET"));
 		await frame.evaluate(async function (url, name) {
 			log("frame analysis", url, name);

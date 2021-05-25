@@ -58,8 +58,8 @@ class Probe:
                         parent_db_id=parent.db_id,
                         set_cookie=self.cookies,
                         data=request['data'],
-                        trigger=safe_get(request, "trigger", None),
-                        extra_headers=safe_get(request, "extra_headers", None))
+                        trigger=request.get("trigger", None),
+                        extra_headers=request.get("extra_headers", None))
             self.requests.append(r)
         #except Exception as e:
         #	pass
@@ -72,7 +72,3 @@ class Probe:
         #     self.user_output.append(val)
 
     # @TODO handle cookies set by ajax (in probe too)
-
-
-def safe_get(obj, key, default):
-    return obj[key] if key in obj else default

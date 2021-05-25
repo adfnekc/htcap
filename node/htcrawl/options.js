@@ -34,7 +34,7 @@ exports.options = {
 	overrideTimeoutFunctions: false,
 	referer: false,
 	userAgent: null,
-	allEvents: ['abort', 'autocomplete', 'autocompleteerror', 'beforecopy', 'beforecut', 'beforepaste', 'blur', 'cancel', 'canplay', 'canplaythrough', 'change', /*'click',*/ 'close', 'contextmenu', 'copy', 'cuechange', 'cut', 'dblclick', 'drag', 'dragend', 'dragenter', 'dragleave', 'dragover', 'dragstart', 'drop', 'durationchange', 'emptied', 'ended', 'error', 'focus', 'input', 'invalid', 'keydown', 'keypress', 'keyup', 'load', 'loadeddata', 'loadedmetadata', 'loadstart', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove', 'mouseout', 'mouseover', 'mouseup', 'mousewheel', 'paste', 'pause', 'play', 'playing', 'progress', 'ratechange', 'reset', 'resize', 'scroll', 'search', 'seeked', 'seeking', 'select', 'selectstart', 'show', 'stalled', 'submit', 'suspend', 'timeupdate', 'toggle', 'volumechange', 'waiting', 'webkitfullscreenchange', 'webkitfullscreenerror', 'wheel'],
+	allEvents: ['abort', 'autocomplete', 'autocompleteerror', 'beforecopy', 'beforecut', 'beforepaste', 'blur', 'cancel', 'canplay', 'canplaythrough', 'change', 'click', 'close', 'contextmenu', 'copy', 'cuechange', 'cut', 'dblclick', 'drag', 'dragend', 'dragenter', 'dragleave', 'dragover', 'dragstart', 'drop', 'durationchange', 'emptied', 'ended', 'error', 'focus', 'input', 'invalid', 'keydown', 'keypress', 'keyup', 'load', 'loadeddata', 'loadedmetadata', 'loadstart', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove', 'mouseout', 'mouseover', 'mouseup', 'mousewheel', 'paste', 'pause', 'play', 'playing', 'progress', 'ratechange', 'reset', 'resize', 'scroll', 'search', 'seeked', 'seeking', 'select', 'selectstart', 'show', 'stalled', 'submit', 'suspend', 'timeupdate', 'toggle', 'volumechange', 'waiting', 'webkitfullscreenchange', 'webkitfullscreenerror', 'wheel'],
 	// experimenting with click only ..
 	mouseEvents: ['click'], //['click','dblclick','mouseup','mousedown','mousemove','mouseover', 'mouseout'],
 	keyboardEvents: [], //['keydown', 'keypress', 'keydown', 'keypress', 'keyup'],
@@ -61,7 +61,7 @@ exports.options = {
 		'button': ['click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown'],
 		'select': ['change', 'click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown'],
 		'input': ['change', 'click', 'dblclick', 'blur', 'focus', 'keydown', 'keyup', 'mouseup', 'mousedown'],
-		'a': ['click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown'],
+		'a': ['click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown','mouseover'],
 		'textarea': ['change', 'click', 'dblclick', 'blur', 'focus', 'keydown', 'keyup', 'mouseup', 'mousedown'],
 		'span': ['click', 'dblclick', 'mouseup', 'mousedown'],
 		'td': ['click', 'dblclick', 'mouseup', 'mousedown'],
@@ -69,7 +69,7 @@ exports.options = {
 		'div': ['click', 'dblclick', 'mouseup', 'mousedown']
 	},
 	eventCache : true,
-	proxy: null,
+	proxy: "",
 	loadWithPost: false,
 	postData: null,
 	headlessChrome: true,
