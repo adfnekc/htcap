@@ -367,7 +367,7 @@ class Crawler {
 	navigate = async (url) => {
 		for (let exurl of this.options.excludedUrls) {
 			if (url.match(exurl)) {
-				throw (`[*filter] ${url} filter by options -x`)
+				throw (`[*filter] ${url} filter by options -x on navigate`)
 			}
 		}
 		await this.inject(this.page());
@@ -474,6 +474,12 @@ class Crawler {
 			// targetUrl = urlparse.parse(targetUrl);
 			// console.log("navgation or redirect =>", req.url(), "host:", targetUrl.host, `navigation:${this._allowNavigation},redirect:${req.redirectChain().length > 0}`);
 			// Active navigation or in a redirect round
+			for (let url of this.options.excludedUrls) {
+				if (req.url().search(url) > 0){
+					console.log(`[*filter] ${req.url()} filter by options -x on interception request `);
+					return await req.abort('failed');
+				}
+			}
 			if (this._allowNavigation) {
 				return await req.continue();
 			} else if (req.redirectChain().length > 0) {
