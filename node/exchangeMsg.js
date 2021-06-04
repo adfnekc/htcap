@@ -235,7 +235,7 @@ class httpIO extends io {
                 ctx.status = 455;
                 return
             }
-            
+
             if (this._eventCacheSet.has(evtstr)) {
                 ctx.status = 200;
             } else {
@@ -247,12 +247,20 @@ class httpIO extends io {
         return r
     }
 
+    async time(ctx, next) {
+        const start = new Date();
+        await next();
+        const ms = new Date() - start;
+        console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
+    }
+
     listen() {
         const app = new Koa();
         app.use(koaBody());
         const r = this.router();
         app.use(r.routes())
-            .use(r.allowedMethods());
+            .use(r.allowedMethods())
+            .use(this.time);
 
         const server = http.createServer(app.callback())
             .listen(this.port, "", () => {
