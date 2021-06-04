@@ -258,9 +258,9 @@ class httpIO extends io {
         const app = new Koa();
         app.use(koaBody());
         const r = this.router();
-        app.use(r.routes())
-            .use(r.allowedMethods())
-            .use(this.time);
+        app.use(this.time)
+            .use(r.routes())
+            .use(r.allowedMethods());
 
         const server = http.createServer(app.callback())
             .listen(this.port, "", () => {
