@@ -6,42 +6,39 @@ const htcrawl = require("./htcrawl/main.js");
 test();
 
 async function test() {
-	process.argv.push(...["-n", "1"])
-	let options = utils.getOptionsFromCMD();
-	options.eventCache = false;
-	options.setCookies = [
+	let url = "http://172.16.245.128/admin/pages.php?error=There was a problem trying to clone <b>index-1</b>";
+	let cookie = [
 		{
-			name: 'PHPSESSID',
-			value: 'epg91ub0mn77g55v5po88fs6ba',
-			domain: '172.16.245.149',
+			name: 'GS_ADMIN_USERNAME',
+			value: 'admin',
+			domain: '172.16.245.128',
 			path: '/',
 			secure: false,
 			expires: null,
 			httponly: false
 		},
 		{
-			name: 'alc_enc',
-			value: '1%3A8885ea870313d49e889801323341c176b041c5df',
-			domain: '172.16.245.149',
-			path: '/',
-			secure: false,
-			expires: null,
-			httponly: false
-		},
-		{
-			name: 'alc_device',
-			value: 'd2bcf55df38dc4df0951db476590ac61a161ba4e',
-			domain: '172.16.245.149',
+			name: '4d5ffed79f58c04679e11e51acb48e1b7b76d063',
+			value: 'dc422f34d2af27a705e1f5a0949ddd0f715300a4',
+			domain: '172.16.245.128',
 			path: '/',
 			secure: false,
 			expires: null,
 			httponly: false
 		}
-	]
+	];
+
+
+	process.argv.push(...["-n", "1"]);
+	let options = utils.getOptionsFromCMD();
+	options.eventCache = false;
+	options.setCookies = cookie
 	options.outputFunc = (msg) => {
 		console.log(msg);
 	}
 	let crawler = await htcrawl.NewCrawler(options);
-	await crawler.analyze("http://172.16.245.149/my-project/public/admin");
-	//process.exit(1);
+
+	let start = new Date()
+	await crawler.analyze(url);
+	console.log(`analyze page ${url} took ${new Date() - start}ms`)
 }
