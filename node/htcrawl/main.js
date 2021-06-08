@@ -13,18 +13,17 @@ version.
 
 const fs = require("fs");
 const os = require('os');
-const request = require('request');
 const urlparse = require('url');
 const path = require('path');
+const { sleep } = require("../utils");
 const process = require('process');
+const request = require('request');
 const puppeteer = require('puppeteer');
-
 const probe = require("./probe");
 const output = require("./output");
 const defaults = require('./options').options;
 const { utils, RequestModel } = require('./utils');
 const probeTextComparator = require("./shingleprint");
-const { sleep } = require("../utils");
 
 
 
@@ -62,7 +61,7 @@ exports.NewCrawler = async function (options) {
 	}
 
 	let browser = await puppeteer.launch({ headless: options.headlessChrome, ignoreHTTPSErrors: true, executablePath: options.executablePath, args: chromeArgs });
-	let page = await browser.newPage();
+	let page = (await browser.pages())[0];
 
 	// set page properties
 	try {
@@ -119,7 +118,7 @@ exports.NewCrawler = async function (options) {
 class Crawler {
 	/**
  * @constructs Crawler
- * @param options {Object}
+ * @param options {defaults}
  * @param browser {puppeteer.Browser}
  * @param page {puppeteer.Page}
  */
@@ -371,7 +370,7 @@ class Crawler {
 			}
 		}
 		await this.inject(this.page());
-		var resp = null;
+		var resp = null;//@type puppeteer.Response
 		this._allowNavigation = true;
 		try {
 			resp = await this._goto(url);
@@ -384,48 +383,11 @@ class Crawler {
 		await this._afterNavigation(resp);
 	};
 
-	clickToNavigate = async (element, timeout) => {
-		const _this = this;
-		var pa;
-		if (typeof element == 'string') {
-			try {
-				element = await this._page.$(element);
-			} catch (e) {
-				throw ("Element not found")
-			}
-		}
-		if (typeof timeout == 'undefined') timeout = 500;
-
-		this._allowNavigation = true;
-		try {
-			pa = await Promise.all([
-				element.click(),
-				this._page.waitForRequest(req => req.isNavigationRequest() && req.frame() == _this._page.mainFrame(), {
-					timeout: timeout
-				}),
-				this._page.waitForNavigation({
-					waitUntil: 'load'
-				}),
-			]);
-
-		} catch (e) {
-			pa = null;
-		}
-		this._allowNavigation = false;
-
-		if (pa != null) {
-			await this._afterNavigation(pa[2]);
-			return true;
-		}
-		throw ("Navigation error");
-	};
-
 	analyze = async (targetUrl) => {
 		async function exit() {
 			//await sleep(1000000)
 			clearTimeout(execTO);
 			//await crawler.browser().close();
-			fs.unlink(pidfile, (err) => { });
 			// process.exit();
 			return out.printStatus(that);
 		}
@@ -452,21 +414,26 @@ class Crawler {
 		}
 
 		this._errors = [];
-		let that = this;
-		let page = that.page();
+		const that = this;
+		const page = that.page();
 		that.browser().on("targetcreated", async (target) => {
 			//TODO need close page quickily,and try avoid listen event twice
 			//console.log("===>on targetcreated:", target.url());
 			if (target.type() === 'page') {
-
 				let targeturl = target.url();
+				that.dispatchProbeEvent("newtab", { "request": RequestModel(targeturl, "newtab") });
 				const p = await target.page();
-				await Promise.all([
-					p.close(),
-					that.dispatchProbeEvent("newtab", { "request": RequestModel(targeturl, "newtab") })
-				]);
+				const client = await p.target().createCDPSession();
+				await client.send("Fetch.enable");
+				client.on('Fetch.requestPaused', async ({ requestId, request, frameId, resourceType, responseStatusCode }) => {
+					if (responseStatusCode==0){
+						client.send("Fetch.fulfillRequest", { requestId: requestId, responseCode: 500, body: "" })
+					}
+				});
+				await p.close();
 			}
 		});
+
 
 		// removing all event listeners before listening to the request event is to prevent multiple-listen
 		page.removeAllListeners("request");
@@ -474,19 +441,25 @@ class Crawler {
 			// targetUrl = urlparse.parse(targetUrl);
 			// console.log("navgation or redirect =>", req.url(), "host:", targetUrl.host, `navigation:${this._allowNavigation},redirect:${req.redirectChain().length > 0}`);
 			// Active navigation or in a redirect round
+
 			for (let url of this.options.excludedUrls) {
-				if (req.url().search(url) > 0){
+				if (req.url().search(url) > 0) {
 					console.log(`[*filter] ${req.url()} filter by options -x on interception request `);
 					return await req.abort('failed');
 				}
 			}
+
+			if (this.options.blockTypes.has(req.resourceType())) {
+				return req.abort('failed');
+			}
+
 			if (this._allowNavigation) {
 				return await req.continue();
 			} else if (req.redirectChain().length > 0) {
-				await this.dispatchProbeEvent("redirect", { request: RequestModel(req.url(), "newtab", req._method) });
+				this.dispatchProbeEvent("redirect", { request: RequestModel(req.url(), "newtab", req._method) });
 				return await req.continue();
 			} else if (req.isNavigationRequest() && req.frame() == page.mainFrame()) { //Navigation actions that are not active navigation
-				await this.dispatchProbeEvent("navigation", { request: RequestModel(req.url(), "navigation", req._method) });
+				this.dispatchProbeEvent("navigation", { request: RequestModel(req.url(), "navigation", req._method) });
 				return await req.abort('aborted');
 			} else {
 				return await req.abort('failed');
@@ -503,7 +476,6 @@ class Crawler {
 
 		let domLoaded = false;
 		let endRequested = false;
-		const pidfile = path.join(os.tmpdir(), "htcap-pids-" + process.pid);
 
 		if (!this.options.outputFunc)
 			console.log("options.outputFunc not set")
@@ -532,8 +504,6 @@ class Crawler {
 			return out.printStatus(that)
 		}
 
-		fs.writeFileSync(pidfile, this.browser().process().pid.toString());
-
 		// set analyze single page timeout
 		let execTO = setTimeout(function () {
 			// this.errors().push(["probe_timeout", "maximum execution time reached"]);
@@ -550,7 +520,7 @@ class Crawler {
 		}
 
 		// scroll page
-		await this.scroll();
+		this.scroll();
 
 
 		try {
@@ -563,6 +533,7 @@ class Crawler {
 			console.log(err);
 			await end();
 		}
+		await this._goto("about:blank")
 	}
 
 	dispatchProbeEvent = async (name, params) => {
@@ -698,4 +669,40 @@ class Crawler {
 			}
 		})
 	};
+
+	// clickToNavigate = async (element, timeout) => {
+	// 	const _this = this;
+	// 	var pa;
+	// 	if (typeof element == 'string') {
+	// 		try {
+	// 			element = await this._page.$(element);
+	// 		} catch (e) {
+	// 			throw ("Element not found")
+	// 		}
+	// 	}
+	// 	if (typeof timeout == 'undefined') timeout = 500;
+
+	// 	this._allowNavigation = true;
+	// 	try {
+	// 		pa = await Promise.all([
+	// 			element.click(),
+	// 			this._page.waitForRequest(req => req.isNavigationRequest() && req.frame() == _this._page.mainFrame(), {
+	// 				timeout: timeout
+	// 			}),
+	// 			this._page.waitForNavigation({
+	// 				waitUntil: 'load'
+	// 			}),
+	// 		]);
+
+	// 	} catch (e) {
+	// 		pa = null;
+	// 	}
+	// 	this._allowNavigation = false;
+
+	// 	if (pa != null) {
+	// 		await this._afterNavigation(pa[2]);
+	// 		return true;
+	// 	}
+	// 	throw ("Navigation error");
+	// };
 };

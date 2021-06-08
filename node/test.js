@@ -7,10 +7,9 @@ const http = require('http');
 const koaBody = require('koa-body');
 const Router = require('@koa/router');
 const { formatURL, sleep } = require('./utils.js');
-const { runInNewContext } = require('vm');
 
 
-http_server();
+//http_server();
 async function http_server() {
 	let time = async (ctx, next) => {
 		const start = new Date();
@@ -51,7 +50,6 @@ async function http_server() {
 					}
 					await sleep(20);
 				}
-
 				return res;
 			})();
 		});
@@ -117,29 +115,56 @@ async function http_server() {
 }
 
 
-//test();
+test();
 
 async function test() {
-	let url = "http://172.16.245.128/admin/pages.php?error=There was a problem trying to clone <b>index-1</b>";
+	let url = "http://172.16.245.152/wp-admin/";
 	let cookie = [
 		{
-			name: 'GS_ADMIN_USERNAME',
-			value: 'admin',
-			domain: '172.16.245.128',
+			name: 'wordpress_b190be224883d32ba7fb11e55a8b1a1b',
+			value: 'admin%7C1623226477%7CI6p5rsCWblxB2ni9g3iXYM4P6iMXE88I2iRT5hVgTXg%7Cd606d7e82cf6a2d1db1212a70c652485e376a019d68db47e9680589f4c326922',
+			domain: '172.16.245.152',
 			path: '/',
 			secure: false,
 			expires: null,
 			httponly: false
-		},
-		{
-			name: '4d5ffed79f58c04679e11e51acb48e1b7b76d063',
-			value: 'dc422f34d2af27a705e1f5a0949ddd0f715300a4',
-			domain: '172.16.245.128',
+		  },
+		  {
+			name: 'wordpress_test_cookie',
+			value: 'WP+Cookie+check',
+			domain: '172.16.245.152',
 			path: '/',
 			secure: false,
 			expires: null,
 			httponly: false
-		}
+		  },
+		  {
+			name: 'wordpress_logged_in_b190be224883d32ba7fb11e55a8b1a1b',
+			value: 'admin%7C1623226477%7CI6p5rsCWblxB2ni9g3iXYM4P6iMXE88I2iRT5hVgTXg%7C75ab6f1414654d23f005e61106f42df315295db4a5c8ed5bfe4fcc5f6f301e95',
+			domain: '172.16.245.152',
+			path: '/',
+			secure: false,
+			expires: null,
+			httponly: false
+		  },
+		  {
+			name: 'wp-settings-1',
+			value: 'widgets_access%3Doff%26posts_list_mode%3Dexcerpt%26mfold%3Df',
+			domain: '172.16.245.152',
+			path: '/',
+			secure: false,
+			expires: null,
+			httponly: false
+		  },
+		  {
+			name: 'wp-settings-time-1',
+			value: '1623053807~',
+			domain: '172.16.245.152',
+			path: '/',
+			secure: false,
+			expires: null,
+			httponly: false
+		  }
 	];
 
 

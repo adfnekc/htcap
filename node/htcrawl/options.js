@@ -61,14 +61,14 @@ exports.options = {
 		'button': ['click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown'],
 		'select': ['change', 'click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown'],
 		'input': ['change', 'click', 'dblclick', 'blur', 'focus', 'keydown', 'keyup', 'mouseup', 'mousedown'],
-		'a': ['click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown','mouseover'],
+		'a': ['click', 'dblclick', 'keydown', 'keyup', 'mouseup', 'mousedown', 'mouseover'],
 		'textarea': ['change', 'click', 'dblclick', 'blur', 'focus', 'keydown', 'keyup', 'mouseup', 'mousedown'],
 		'span': ['click', 'dblclick', 'mouseup', 'mousedown'],
 		'td': ['click', 'dblclick', 'mouseup', 'mousedown'],
 		'tr': ['click', 'dblclick', 'mouseup', 'mousedown'],
 		'div': ['click', 'dblclick', 'mouseup', 'mousedown']
 	},
-	eventCache : true,
+	eventCache: true,
 	proxy: "",
 	loadWithPost: false,
 	postData: null,
@@ -77,5 +77,6 @@ exports.options = {
 	openChromeDevtoos: false,
 	exceptionOnRedirect: false,
 	bypassCSP: true,
-	simulateRealEvents: true
+	simulateRealEvents: true,
+	blockTypes: new Set(['image', 'media', 'font'])
 };
