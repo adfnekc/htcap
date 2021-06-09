@@ -4,17 +4,14 @@
 HTCAP - beta 1
 Author: filippo.cavallarin@wearesegment.com
 
-This program is free software; you can redistribute it and/or modify it under 
-the terms of the GNU General Public License as published by the Free Software 
-Foundation; either version 2 of the License, or (at your option) any later 
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
 version.
 """
 
 import sys
 import os
-import datetime
-import time
-import getopt
 import logging
 
 from core.lib.utils import *
@@ -22,12 +19,10 @@ from core.crawl.crawler import Crawler
 from core.scan.scanner import Scanner
 
 from core.util.util import Util
-import importlib
 
 
 def split_argv(argv):
     argvs = []
-    tmp = []
     cur = 0
     for a in argv:
         if a == ";":
@@ -44,7 +39,7 @@ def usage():
     print((
         "htcap ver " + infos['version'] + "\n"
         "usage: htcap <command>\n"
-        "commands are chainable using '\;' and they share the same database\n"
+        "commands are chainable using '\\;' and they share the same database\n"
         "  ex: htcap crawl http://htcap.org htcap.db \\; scan sqlmap \\; util report htcap.html\n"
         "Commands: \n"
         "  crawl                  run crawler\n"

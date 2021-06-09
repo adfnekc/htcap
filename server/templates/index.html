@@ -1,7 +1,7 @@
 <form method="post" action="name.html">
     First Name: <input type="text" name="name"><br>
     Last Name: <input type="text" name="surname"><br>
-        <button>save</button>
+    <button>save</button>
 </form>
 
 <form method="post" action="upload.html" enctype="multipart/form-data">
@@ -10,3 +10,15 @@
     <button>upload</button>
 </form>
 <a href="http://google.com">google</a>
+
+<a class="new-window">new-window</a>a>
+
+<script>
+    $(document).ready(function () {
+        $('.new-window').click(function () {
+            var posY = ($(window).height() - 550) / 2;
+            var posX = ($(window).width()) / 2;
+            window.open(this.href, this.alt, "toolbar=0,location=0,directories=0,scrollbars=1,screenX=" + posX + ",screenY=" + posY + ",status=0,menubar=0,width=550,height=550");
+        })
+    })
+</script>
