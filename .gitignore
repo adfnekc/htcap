@@ -11,5 +11,7 @@ TODO.md
 debug.log
 package-lock.json
 
+integratedTest
+
 !/.gitignore
 !.gitkeep

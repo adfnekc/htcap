@@ -69,7 +69,7 @@ exports.options = {
 		'div': ['click', 'dblclick', 'mouseup', 'mousedown']
 	},
 	eventCache: true,
-	proxy: "",
+	proxy: "",//socks5://172.18.76.227:20081
 	loadWithPost: false,
 	postData: null,
 	headlessChrome: true,
@@ -78,5 +78,5 @@ exports.options = {
 	exceptionOnRedirect: false,
 	bypassCSP: true,
 	simulateRealEvents: true,
-	blockTypes: new Set(['image', 'media', 'font'])
+	blockTypes: new Set('image', 'media', 'font','stylesheet') //'texttrack','eventsource','manifest'
 };

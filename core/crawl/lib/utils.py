@@ -203,6 +203,8 @@ def probe_http(url: str, timeout: int) -> str:
 
     retries = Retry(total=10, backoff_factor=0.5)
     s = req.Session()
+    # prevent error cause by requests detect system proxy
+    s.trust_env = False
     s.mount('http://', HTTPAdapter(max_retries=retries))
     res = s.get(url, timeout=timeout)
 

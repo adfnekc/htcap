@@ -251,7 +251,10 @@ class httpIO extends io {
         const start = new Date();
         await next();
         const ms = new Date() - start;
-        console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
+        // log slow response
+        if (ms > 200){
+            console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);    
+        }
     }
 
     listen() {

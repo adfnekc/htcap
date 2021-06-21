@@ -248,6 +248,10 @@ exports.getOptionsFromCMD = () => {
 	return options;
 };
 
+
+/**
+ * @param {string} targetUrl
+ */
 exports.formatURL = (targetUrl) => {
 	if (targetUrl === undefined || !targetUrl) {
 		return ""

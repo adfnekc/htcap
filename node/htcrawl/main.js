@@ -294,7 +294,7 @@ class Crawler {
 	async dumpFrameTree(frame) {
 		this.out.printRequest(RequestModel(frame.url(), "frame", "GET"));
 		await frame.evaluate(async function (url) {
-			log("frame analysis", url);
+			//log("frame analysis", url);
 			await window.__PROBE__.startAnalysis();
 		}, frame.url());
 		for (let child of frame.childFrames())
@@ -342,6 +342,7 @@ class Crawler {
 			}); // <- automatically awaited.."If the puppeteerFunction returns a Promise, it will be awaited."
 			await page.exposeFunction('req', async (url, options) => {
 				return new Promise((reslove, reject) => {
+					options.proxy = null;
 					request(url, options, (err, res) => {
 						if (err) {
 							reject(err);
@@ -415,7 +416,7 @@ class Crawler {
 		this._errors = [];
 		const that = this;
 		const page = that.page();
-		that.browser().on("targetcreated", async (target) => {
+		that.browser().once("targetcreated", async (target) => {
 			//TODO need close page quickily,and try avoid listen event twice
 			//console.log("===>on targetcreated:", target.url());
 			if (target.type() === 'page') {
@@ -424,9 +425,9 @@ class Crawler {
 				const p = await target.page();
 				const client = await p.target().createCDPSession();
 				await client.send("Fetch.enable");
-				client.on('Fetch.requestPaused', async ({ requestId, request, frameId, resourceType, responseStatusCode }) => {
-					if (responseStatusCode==0){
-						client.send("Fetch.fulfillRequest", { requestId: requestId, responseCode: 500, body: "" })
+				client.once('Fetch.requestPaused', async ({ requestId, request, frameId, resourceType, responseStatusCode }) => {
+					if (responseStatusCode == 0) {
+						await client.send("Fetch.fulfillRequest", { requestId: requestId, responseCode: 500, body: "" });
 					}
 				});
 				await p.close();
@@ -448,7 +449,7 @@ class Crawler {
 				}
 			}
 
-			if (this.options.blockTypes.has(req.resourceType())) {
+			if (this.options.blockTypes.has(req.resourceType().toString())) {
 				return req.abort('failed');
 			}
 
@@ -478,7 +479,7 @@ class Crawler {
 
 		if (!this.options.outputFunc)
 			console.log("options.outputFunc not set")
-		let outputFunc = this.options.outputFunc ? this.options.outputFunc : (msgs) => { console.log("@&=> msgs:", msgs) };
+		let outputFunc = this.options.outputFunc ? this.options.outputFunc : (msgs) => { console.log("!!!WARN outputFunc not set\r\n", msgs) };
 		let out = new output(outputFunc);
 		this.out = out;
 		out.print_url(targetUrl);
@@ -532,7 +533,7 @@ class Crawler {
 			console.log(err);
 			await end();
 		}
-		await this._goto("about:blank")
+		//await this._goto("about:blank")
 	}
 
 	dispatchProbeEvent = async (name, params) => {

@@ -1105,7 +1105,7 @@ function initProbe(options, inputValues) {
 				let evtstr = this.elEvtTostr(el)
 				if (evtstr) {
 					try {
-						res = await req("http://127.0.0.1:21218/_eventCacheSet", { method: 'PUT', timeout: 200, json: true, body: { evtstr: evtstr } })
+						res = await req("http://127.0.0.1:21218/_eventCacheSet", { method: 'PUT', timeout: 100, json: true, body: { evtstr: evtstr } })
 					} catch (error) {
 						log("req err:", error, error.toString());
 						throw error;
@@ -1113,7 +1113,7 @@ function initProbe(options, inputValues) {
 					if ('statusCode' in res) {
 						switch (res.statusCode) {
 							case 200:
-								log("[*filter] element:", evtstr)
+								//log("[*filter] element:", evtstr)
 								return
 								break;
 							case 455:
