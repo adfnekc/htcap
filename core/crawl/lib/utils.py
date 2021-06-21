@@ -213,3 +213,16 @@ def probe_http(url: str, timeout: int) -> str:
     else:
         log.error("err in res:%s" % res.content)
         return ""
+
+
+def close_node_process():
+    url = "http://" + Shared.node_host + "/close"
+    s = req.Session()
+    # prevent error cause by requests detect system proxy
+    s.trust_env = False
+    res = s.get(url, timeout=3, proxies=None)
+    print("close_node_process: ", res.content)
+
+
+def get_node_alive():
+    url = "http://" + Shared.node_host + "/alive"

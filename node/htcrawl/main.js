@@ -166,6 +166,13 @@ class Crawler {
 	errors = () => { return this._errors; }
 	redirect = () => { return this._redirect; }
 
+	/**
+	 * close browser
+	 */
+	close = async () => {
+		await this._browser.close();
+	}
+
 	_goto = async (url) => {
 		if (this.options.verbose) console.log("LOADDING-> ", url)
 

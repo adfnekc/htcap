@@ -31,6 +31,10 @@ class io {
         await this.output(msg);
     }
 
+    async close() {
+        await this._close();
+    }
+
     /**
      * @returns {string} dequeue a targeturl form q
      * @async
@@ -40,7 +44,7 @@ class io {
     }
 
     /**
-     * @return {boolean} wheath io is alive
+     * @return {boolean} whether io is alive
      */
     is_alive() {
         return this.alive
@@ -244,6 +248,21 @@ class httpIO extends io {
             }
         })
 
+        r.get("/close", async (ctx, next) => {
+            await next()
+
+            console.log("close request recived");
+            this.alive = false;
+            ctx.status = 200;
+            return
+        })
+
+        r.get("/alive", async (ctx, next) => {
+            await next();
+            ctx.body = !!this.alive
+            return
+        })
+
         return r
     }
 
@@ -252,9 +271,13 @@ class httpIO extends io {
         await next();
         const ms = new Date() - start;
         // log slow response
-        if (ms > 200){
-            console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);    
+        if (ms > 200) {
+            console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
         }
+    }
+
+    async _close() {
+        this.server.close();
     }
 
     listen() {
@@ -269,6 +292,7 @@ class httpIO extends io {
             .listen(this.port, "", () => {
                 console.log(`Server running at :${server.address().port}`);
             })
+        this.server = server;
         return server
     }
 }

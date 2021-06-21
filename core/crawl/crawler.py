@@ -38,7 +38,7 @@ from .lib.crawl_result import *
 from core.lib.request import Request
 from core.lib.http_get import HttpGet
 
-from typing import List
+from typing import List, Union
 from .crawler_thread import CrawlerThread
 # from core.lib.shingleprint import ShinglePrint
 from core.lib.texthash import TextHash
@@ -638,8 +638,8 @@ class Crawler:
         self.main_loop(threads, start_requests, database)
 
         try:
+            close_node_process()
             self.kill_threads(threads)
-            node_process.kill()
             if cookie_file != "":
                 os.remove(cookie_file)
         except Exception as e:
@@ -654,8 +654,9 @@ class Crawler:
         database.save_crawl_info(end_date=self.crawl_end_time)
 
 
-def start_node(cmd: List[str],
-               cookieList: List[Cookie] = None) -> (subprocess.Popen, str):
+def start_node(
+        cmd: List[str],
+        cookieList: List[Cookie] = None) -> Union[subprocess.Popen, str]:
     cookieList = [c for c in cookieList if c.is_valid_for_url(Shared.starturl)]
     cookie_file = ""
 

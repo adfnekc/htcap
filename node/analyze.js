@@ -37,6 +37,7 @@ async function main() {
 		threads.push(statu);
 	};
 	let status = await Promise.all(threads);
+	socket.close();
 	console.log("Task results for threads:", status);
 }
 
@@ -59,4 +60,6 @@ async function startCrawlerTask(socket, options) {
 		}
 		await utils.sleep(1000);
 	}
+	await crawler.close();
+	return 0
 }
